@@ -20,7 +20,11 @@
     deactivate
     ```
 
-## Start application
+## Execute application
+1. Create the infrastructure using the continuum project found here:\
+[Continuum Project Repository](https://github.com/atlarge-research/continuum)
+2. Run the application
     ```bash
     python test.py
     ```
+3. The results are stored in `results/`

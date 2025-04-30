@@ -1,50 +1,10 @@
 import paramiko
 import threading
 import time
-import csv
 from datetime import datetime
-from Netio import Netio
 import os
-
-
-def log_data(stop_event, filename):
-    timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    csv_file = f"results/{filename}_{timestamp_str}.csv"
-
-    n = Netio("http://192.168.1.78/netio.json", auth_rw=("admin", "password"))
-
-    headers = [
-        "timestamp",
-        "Node3-1_Current", "Node3-1_PowerFactor", "Node3-1_Load", "Node3-1_Energy",
-        "Node3-2_Current", "Node3-2_PowerFactor", "Node3-2_Load", "Node3-2_Energy"
-    ]
-
-    # This is every 100ms
-    poll_interval = 0.1
-
-    with open(csv_file, mode='a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(headers)
-        if f.tell() == 0:
-            writer.writerow(headers)
-
-        while not stop_event.is_set():
-            timestamp = datetime.now().isoformat()
-            outputs = n.get_outputs()
-
-            out1 = next((o for o in outputs if o.ID == 1), None)
-            out2 = next((o for o in outputs if o.ID == 2), None)
-
-            if out1 and out2:
-                writer.writerow([
-                    timestamp,
-                    out1.Current, out1.PowerFactor, out1.Load, out1.Energy,
-                    out2.Current, out2.PowerFactor, out2.Load, out2.Energy
-                ])
-                f.flush()
-
-            time.sleep(poll_interval)
-
+from src.diagram import plot_diagrams
+from src.measure import write_csv
 
 def run_remote_script(host, username, key_path, run):
     ssh = paramiko.SSHClient()
@@ -68,6 +28,10 @@ def run_remote_script(host, username, key_path, run):
 
 
 if __name__ == "__main__":
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    results_dir = f"results/{timestamp}/"
+    os.makedirs(results_dir, exist_ok=True)
+
     remote_host = "192.168.155.2"
     remote_user = "cloud_controller_twuttge"
     ssh_key = "/home/twuttge/.ssh/id_rsa_continuum"
@@ -76,7 +40,7 @@ if __name__ == "__main__":
 
     for run in test_runs:
         stop_event = threading.Event()
-        logger_thread = threading.Thread(target=log_data, args=(stop_event, run[0]))
+        logger_thread = threading.Thread(target=write_csv, args=(stop_event, run[0], timestamp))
         logger_thread.start()
         try:
             print("------- Start Run -------")
@@ -86,3 +50,9 @@ if __name__ == "__main__":
             logger_thread.join()
             print(f"------- Done running -------")
             time.sleep(5)
+
+    for csv_file in os.listdir(results_dir):
+        if csv_file.endswith(".csv"):
+            csv_path = os.path.join(results_dir, csv_file)
+            output_path = os.path.join(results_dir, f"{os.path.splitext(csv_file)[0]}_diagrams.png")
+            plot_diagrams(csv_path, output_path)

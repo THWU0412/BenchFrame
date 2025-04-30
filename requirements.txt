@@ -1,2 +1,5 @@
 Netio
 paramiko
+python-ipmi
+matplotlib
+pandas
