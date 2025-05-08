@@ -3,3 +3,4 @@ paramiko
 python-ipmi
 matplotlib
 pandas
+psutil
