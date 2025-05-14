@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 
 # Run with:
-# python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/2025-05-07_11-54-49/sequential.csv", "results/2025-05-07_11-54-49/sequential.png")'
+# python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/2025-05-14_09-33-14/cpu_seq.csv", "results/2025-05-14_09-33-14/cpu_seq.png")'
 # python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/2025-05-07_11-54-49/simultaneous.csv", "results/2025-05-07_11-54-49/simultaneous.png")'
 
 def plot_diagrams(csv_file, output_file):
@@ -14,10 +14,10 @@ def plot_diagrams(csv_file, output_file):
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
 
     # Plot Current
-    axes[0, 0].plot(data['timestamp'], data['Node3-L_Current'], label='Node3-L_Current')
-    axes[0, 0].plot(data['timestamp'], data['Node3-R_Current'], label='Node3-R_Current')
-    # axes[0, 0].plot(data['timestamp'], data['Node3-L_Current'] + data['Node3-R_Current'], 
-    #                 label='Sum_Current_Node3', linestyle='--')
+    # axes[0, 0].plot(data['timestamp'], data['Node3-L_Current'], label='Node3-L_Current')
+    # axes[0, 0].plot(data['timestamp'], data['Node3-R_Current'], label='Node3-R_Current')
+    axes[0, 0].plot(data['timestamp'], data['Node3-L_Current'] + data['Node3-R_Current'], 
+                    label='Sum_Current_Node3', linestyle='--')
     axes[0, 0].set_title('Current')
     axes[0, 0].set_xlabel('Timestamp')
     axes[0, 0].set_ylabel('Current (mA)')
@@ -26,8 +26,8 @@ def plot_diagrams(csv_file, output_file):
     # Plot PowerFactor
     # axes[0, 1].plot(data['timestamp'], data['Node3-L_PowerFactor'], label='Node3-L_PowerFactor')
     # axes[0, 1].plot(data['timestamp'], data['Node3-R_PowerFactor'], label='Node3-R_PowerFactor')
-    axes[0, 1].plot(data['timestamp'], data['Node3-L_PowerFactor'] + data['Node3-R_PowerFactor'], 
-                    label='Sum_PowerFactor', linestyle='--')
+    axes[0, 1].plot(data['timestamp'], (data['Node3-L_PowerFactor'] + data['Node3-R_PowerFactor']) / 2, 
+                    label='Avg_PowerFactor', linestyle='--')
     axes[0, 1].set_title('PowerFactor')
     axes[0, 1].set_xlabel('Timestamp')
     axes[0, 1].set_ylabel('PowerFactor')
