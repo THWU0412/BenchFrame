@@ -59,8 +59,8 @@ def plot_diagrams(csv_file, output_file):
     plt.close()
 
 # Run with:
-# python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-07_16-56-44/sequential.csv", "results/2025-05-07_16-56-44/cpu_sequential.png")'
-# python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-07_16-56-44/simultaneous.csv", "results/2025-05-07_16-56-44/cpu_simultaneous.png")'
+# python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-08_11-33-52/sequential.csv", "results/2025-05-08_11-33-52/cpu_sequential.png")'
+# python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-08_11-33-52/simultaneous.csv", "results/2025-05-08_11-33-52/cpu_simultaneous.png")'
 def plot_avg_cpu_usage(csv_file, output_file):
     data = pd.read_csv(csv_file, parse_dates=['timestamp'])
 
@@ -69,7 +69,9 @@ def plot_avg_cpu_usage(csv_file, output_file):
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
 
     data['Average_CPU'] = data[[f'CPU{i}' for i in range(1, 21)]].mean(axis=1)
+    data['Avg_CPU_smooth'] = data['Average_CPU'].rolling(window=10).mean()
     axes.plot(data['timestamp'], data['Average_CPU'], label='Average_CPU', color='red', linewidth=2)
+    axes.plot(data['timestamp'], data['Avg_CPU_smooth'], label='Smoothed Avg CPU', color='blue', linewidth=2)
 
     axes.set_title('CPU Usage Over Time')
     axes.set_xlabel('Timestamp')
@@ -98,6 +100,24 @@ def plot_all_cpus(csv_file, output_file):
         ax.set_title(f'CPU {i}')
         ax.set_xlabel('Timestamp')
         ax.set_ylabel('Usage (%)')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file)
+    plt.close()
+
+def plot_memory_usage(csv_file, output_file):
+    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+
+    fig, axes = plt.subplots(figsize=(15, 10))
+    fig.suptitle('Memory Usage', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+
+    axes.plot(data['timestamp'], data['Memory_Usage'], label='Memory Usage', color='green', linewidth=2)
+
+    axes.set_title('Memory Usage Over Time')
+    axes.set_xlabel('Timestamp')
+    axes.set_ylabel('Memory Usage (%)')
+    axes.legend()
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file)

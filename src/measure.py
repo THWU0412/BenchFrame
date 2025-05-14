@@ -28,9 +28,13 @@ def write_csv(stop_event, filename, timestamp):
 
     headers = [
         "timestamp",
+        # PDU data
         "Node3-L_Current", "Node3-L_PowerFactor", "Node3-L_Load", "Node3-L_Energy",
         "Node3-R_Current", "Node3-R_PowerFactor", "Node3-R_Load", "Node3-R_Energy",
-        "IPMI_Timestamp", "IPMI_Current", "IPMI_State",
+        # IPMI data
+        "IPMI_Timestamp", "IPMI_Current", "IPMI_State", 
+        # CPU and Memory data
+        "Memory_Usage",
         "CPU1", "CPU2", "CPU3", "CPU4", "CPU5", "CPU6", "CPU7", "CPU8",
         "CPU9", "CPU10", "CPU11", "CPU12", "CPU13", "CPU14", "CPU15", "CPU16", 
         "CPU17", "CPU18", "CPU19", "CPU20"
@@ -51,6 +55,7 @@ def write_csv(stop_event, filename, timestamp):
             timestamp = time.strftime("%H:%M:%S", time.localtime())
             data_PDU = read_PDU(PDU_L, PDU_R)
             data_IPMI = read_IPMI(ipmi)
+            data_MEM = psutil.virtual_memory()
             data_CPU = psutil.cpu_percent(interval=poll_interval, percpu=True)
             if data_PDU is None or data_IPMI is None:
                 continue
@@ -58,7 +63,7 @@ def write_csv(stop_event, filename, timestamp):
                 timestamp,
                 data_PDU['Node3-L_Current'], data_PDU['Node3-L_PowerFactor'], data_PDU['Node3-L_Load'], data_PDU['Node3-L_Energy'],
                 data_PDU['Node3-R_Current'], data_PDU['Node3-R_PowerFactor'], data_PDU['Node3-R_Load'], data_PDU['Node3-R_Energy'],
-                data_IPMI['timestamp'], data_IPMI['current'], data_IPMI['state']
+                data_IPMI['timestamp'], data_IPMI['current'], data_IPMI['state'], data_MEM.percent
             ]
             row.extend(data_CPU)
             writer.writerow(row)
