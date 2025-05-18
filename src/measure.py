@@ -6,6 +6,7 @@ from Netio import Netio
 import pyipmi
 import psutil
 import pyipmi.interfaces
+import os
 
 NETIO_IP_L = "http://192.168.1.78/netio.json"
 NETIO_IP_R = "http://192.168.1.79/netio.json"
@@ -13,6 +14,8 @@ NETIO_AUTH = ("admin", "password")
 
 IPMI_IP = "192.168.1.203"
 IPMI_AUTH = ("atlstudent", "56iPmIuSeR")
+
+PDU_NODE_ID = 1
 
 # Run with:
 # python -c 'from src.measure import write_labels; print(write_labels([], "sequential", "2025-04-30_14-42-03"));'
@@ -22,23 +25,29 @@ def write_labels(label_times, filename, timestamp):
     df.to_csv(f"results/{timestamp}/{filename}.csv", index=False)
 
 # Run with:
-# python -c 'from src.measure import write_csv; write_csv(None, "sequential", "2025-04-30_14-42-03");'
-def write_csv(stop_event, filename, timestamp):
+# sudo -E python3 -c 'from src.measure import measure; measure(None, "test", "test");'
+def measure(stop_event, filename, timestamp):
     csv_file = f"results/{timestamp}/{filename}.csv"
 
+    num_cpu = psutil.cpu_count(logical=True)
+    rapl_sockets = len([name for name in os.listdir('/sys/class/powercap') if name.startswith('intel-rapl') and ':' in name and name.count(':') == 1])
+    
     headers = [
         "timestamp",
         # PDU data
-        "Node3-L_Current", "Node3-L_PowerFactor", "Node3-L_Load", "Node3-L_Energy",
-        "Node3-R_Current", "Node3-R_PowerFactor", "Node3-R_Load", "Node3-R_Energy",
+        "PDU-L_Current", "PDU-L_PowerFactor", "PDU-L_Load", "PDU-L_Energy",
+        "PDU-R_Current", "PDU-R_PowerFactor", "PDU-R_Load", "PDU-R_Energy",
         # IPMI data
-        "IPMI_Timestamp", "IPMI_Current", "IPMI_State", 
-        # CPU and Memory data
-        "Memory_Usage",
-        "CPU1", "CPU2", "CPU3", "CPU4", "CPU5", "CPU6", "CPU7", "CPU8",
-        "CPU9", "CPU10", "CPU11", "CPU12", "CPU13", "CPU14", "CPU15", "CPU16", 
-        "CPU17", "CPU18", "CPU19", "CPU20"
+        "IPMI_Current", "IPMI_State", 
+        # Memory data
+        "Memory_Usage"
     ]
+    # INTEL-RAPL data
+    for i in range(rapl_sockets):
+        headers.append(f"INTEL-RAPL{i}_CPU")
+        headers.append(f"INTEL-RAPL{i}_MEM")
+    # CPU data
+    headers += [f"CPU{i+1}" for i in range(num_cpu)]
 
     poll_interval = 0.1
 
@@ -47,7 +56,6 @@ def write_csv(stop_event, filename, timestamp):
 
     with open(csv_file, mode='a', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(headers)
         if f.tell() == 0:
             writer.writerow(headers)
 
@@ -57,17 +65,40 @@ def write_csv(stop_event, filename, timestamp):
             data_IPMI = read_IPMI(ipmi)
             data_MEM = psutil.virtual_memory()
             data_CPU = psutil.cpu_percent(interval=poll_interval, percpu=True)
-            if data_PDU is None or data_IPMI is None:
+            data_RAPL = read_rapl(rapl_sockets)
+            if data_PDU is None or data_IPMI is None or data_RAPL is None:
                 continue
             row = [
                 timestamp,
-                data_PDU['Node3-L_Current'], data_PDU['Node3-L_PowerFactor'], data_PDU['Node3-L_Load'], data_PDU['Node3-L_Energy'],
-                data_PDU['Node3-R_Current'], data_PDU['Node3-R_PowerFactor'], data_PDU['Node3-R_Load'], data_PDU['Node3-R_Energy'],
-                data_IPMI['timestamp'], data_IPMI['current'], data_IPMI['state'], data_MEM.percent
+                # PDU data
+                data_PDU['PDU-L_Current'], data_PDU['PDU-L_PowerFactor'], data_PDU['PDU-L_Load'], data_PDU['PDU-L_Energy'],
+                data_PDU['PDU-R_Current'], data_PDU['PDU-R_PowerFactor'], data_PDU['PDU-R_Load'], data_PDU['PDU-R_Energy'],
+                # IPMI data
+                data_IPMI['current'], data_IPMI['state'], 
+                # Memory, battery, and CPU data
+                data_MEM.percent
             ]
+            # INTEL-RAPL data
+            row.extend(data_RAPL)
+            # CPU data
             row.extend(data_CPU)
             writer.writerow(row)
             f.flush()
+            
+def read_rapl(sockets):
+    data_rapl = []
+    for socket in range(sockets):
+        socket_paths = [f"/sys/class/powercap/intel-rapl:{socket}/energy_uj",
+                        f"/sys/class/powercap/intel-rapl:{socket}:0/energy_uj"]
+        try:
+            with open(socket_paths[0], 'r') as file:
+                data_rapl.append(int(file.read().strip()))
+            with open(socket_paths[1], 'r') as file:
+                data_rapl.append(int(file.read().strip()))
+        except Exception as e:
+            print(f"Error reading RAPL data from {socket}: {e}")
+            return None
+    return data_rapl
 
 
 def setup_PDU():
@@ -79,18 +110,18 @@ def setup_PDU():
 # python -c 'from src.measure import setup_PDU, read_PDU; PDU_L, PDU_R = setup_PDU(); print(read_PDU(PDU_L, PDU_R));'
 def read_PDU(PDU_L, PDU_R):
     
-    output_L = PDU_L.get_output(1)
-    output_R = PDU_R.get_output(1)
+    output_L = PDU_L.get_output(PDU_NODE_ID)
+    output_R = PDU_R.get_output(PDU_NODE_ID)
 
     return {
-        'Node3-L_Current': output_L.Current,            # In mA
-        'Node3-L_PowerFactor': output_L.PowerFactor,    # True Power Factor
-        'Node3-L_Load': output_L.Load,                  # In Watts
-        'Node3-L_Energy': output_L.Energy,              # In Wh
-        'Node3-R_Current': output_R.Current,            # In In mA
-        'Node3-R_PowerFactor': output_R.PowerFactor,    # True Power Factor
-        'Node3-R_Load': output_R.Load,                  # In Watts
-        'Node3-R_Energy': output_R.Energy               # In Wh
+        'PDU-L_Current': output_L.Current,            # In mA
+        'PDU-L_PowerFactor': output_L.PowerFactor,    # True Power Factor
+        'PDU-L_Load': output_L.Load,                  # In Watts
+        'PDU-L_Energy': output_L.Energy,              # In Wh
+        'PDU-R_Current': output_R.Current,            # In In mA
+        'PDU-R_PowerFactor': output_R.PowerFactor,    # True Power Factor
+        'PDU-R_Load': output_R.Load,                  # In Watts
+        'PDU-R_Energy': output_R.Energy               # In Wh
     }
 
 def setup_IPMI():
