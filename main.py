@@ -38,7 +38,7 @@ def run_script(run, host=None, username=None, key_path=None):
     else:
         print(f"Running {run[0]} on local host...")
         # Make the script executable
-        script_path = f"/home/twuttge/thesis/benchmark/{run[1]}"
+        script_path = f"/home/twuttge/thesis/continuum_energy_benchmark/{run[1]}"
         os.chmod(script_path, 0o755)
         process = subprocess.Popen(['bash', script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print(f"Started script with PID: {process.pid}")
