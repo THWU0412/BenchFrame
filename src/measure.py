@@ -17,6 +17,7 @@ IPMI_AUTH = ("atlstudent", "56iPmIuSeR")
 
 PDU_NODE_ID = 1
 
+# TODO: Fix that shit!
 # Run with:
 # python -c 'from src.measure import write_labels; print(write_labels([], "sequential", "2025-04-30_14-42-03"));'
 def write_labels(label_times, filename, timestamp):

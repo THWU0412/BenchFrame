@@ -14,19 +14,19 @@ def plot_diagrams(csv_file, output_file):
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
 
     # Plot Current
-    # axes[0, 0].plot(data['timestamp'], data['Node3-L_Current'], label='Node3-L_Current')
-    # axes[0, 0].plot(data['timestamp'], data['Node3-R_Current'], label='Node3-R_Current')
-    axes[0, 0].plot(data['timestamp'], data['Node3-L_Current'] + data['Node3-R_Current'], 
-                    label='Sum_Current_Node3', linestyle='--')
+    # axes[0, 0].plot(data['timestamp'], data['PDU-L_Current'], label='PDU-L_Current')
+    # axes[0, 0].plot(data['timestamp'], data['PDU-R_Current'], label='PDU-R_Current')
+    axes[0, 0].plot(data['timestamp'], data['PDU-L_Current'] + data['PDU-R_Current'], 
+                    label='Sum_Current_PDU', linestyle='--')
     axes[0, 0].set_title('Current')
     axes[0, 0].set_xlabel('Timestamp')
     axes[0, 0].set_ylabel('Current (mA)')
     axes[0, 0].legend()
 
     # Plot PowerFactor
-    # axes[0, 1].plot(data['timestamp'], data['Node3-L_PowerFactor'], label='Node3-L_PowerFactor')
-    # axes[0, 1].plot(data['timestamp'], data['Node3-R_PowerFactor'], label='Node3-R_PowerFactor')
-    axes[0, 1].plot(data['timestamp'], (data['Node3-L_PowerFactor'] + data['Node3-R_PowerFactor']) / 2, 
+    # axes[0, 1].plot(data['timestamp'], data['PDU-L_PowerFactor'], label='PDU-L_PowerFactor')
+    # axes[0, 1].plot(data['timestamp'], data['PDU-R_PowerFactor'], label='PDU-R_PowerFactor')
+    axes[0, 1].plot(data['timestamp'], (data['PDU-L_PowerFactor'] + data['PDU-R_PowerFactor']) / 2, 
                     label='Avg_PowerFactor', linestyle='--')
     axes[0, 1].set_title('PowerFactor')
     axes[0, 1].set_xlabel('Timestamp')
@@ -34,9 +34,9 @@ def plot_diagrams(csv_file, output_file):
     axes[0, 1].legend()
 
     # Plot Load
-    # axes[1, 0].plot(data['timestamp'], data['Node3-L_Load'], label='Node3-L_Load')
-    # axes[1, 0].plot(data['timestamp'], data['Node3-R_Load'], label='Node3-R_Load')
-    axes[1, 0].plot(data['timestamp'], data['Node3-L_Load'] + data['Node3-R_Load'], 
+    # axes[1, 0].plot(data['timestamp'], data['PDU-L_Load'], label='PDU-L_Load')
+    # axes[1, 0].plot(data['timestamp'], data['PDU-R_Load'], label='PDU-R_Load')
+    axes[1, 0].plot(data['timestamp'], data['PDU-L_Load'] + data['PDU-R_Load'], 
                     label='Sum_Load', linestyle='--')
     axes[1, 0].plot(data['timestamp'], data['IPMI_Current'], label='IPMI_Current')
     axes[1, 0].set_title('Load')
@@ -45,9 +45,9 @@ def plot_diagrams(csv_file, output_file):
     axes[1, 0].legend()
 
     # Plot Energy
-    # axes[1, 1].plot(data['timestamp'], data['Node3-L_Energy'], label='Node3-L_Energy')
-    # axes[1, 1].plot(data['timestamp'], data['Node3-R_Energy'], label='Node3-R_Energy')
-    axes[1, 1].plot(data['timestamp'], data['Node3-L_Energy'] + data['Node3-R_Energy'], 
+    # axes[1, 1].plot(data['timestamp'], data['PDU-L_Energy'], label='PDU-L_Energy')
+    # axes[1, 1].plot(data['timestamp'], data['PDU-R_Energy'], label='PDU-R_Energy')
+    axes[1, 1].plot(data['timestamp'], data['PDU-L_Energy'] + data['PDU-R_Energy'], 
                     label='Sum_Energy', linestyle='--')
     axes[1, 1].set_title('Energy')
     axes[1, 1].set_xlabel('Timestamp')
