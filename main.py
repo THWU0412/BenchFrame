@@ -143,7 +143,7 @@ def run_remote_benchmark(run, timestamp):
             f"tmux new-session -d -s {session_name} "
             f"'cd /home/twuttge/thesis/continuum_energy_benchmark && "
             f"sudo HOME=/home/twuttge/ VIRTUAL_ENV=\"/home/twuttge/continuum_energy_benchmark/venv\" "
-            f"python3 -c \"from remote_src.measure import measure; measure(\\\"test\\\", \\\"test\\\")\"'"
+            f"python3 -c \"from remote_src.measure import measure; measure(\\\"{timestamp}\\\", \\\"{run[0]}\\\")\"'"
         )
 
         stdin, stdout, stderr = ssh.exec_command(command)
@@ -187,6 +187,7 @@ if __name__ == "__main__":
                 p = subprocess.Popen(
                     ["python3", "-c", f"from main import run_remote_benchmark; run_remote_benchmark({run!r}, '{timestamp}')"]
                 )
+                time.sleep(2)
                 processes.append(p)
             # Wait for all subprocesses to finish
             for p in processes:
