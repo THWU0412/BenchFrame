@@ -3,7 +3,7 @@ import threading
 import time
 from datetime import datetime
 import os
-from src.diagram import plot_diagrams, plot_avg_cpu_usage, plot_all_cpus, plot_memory_usage
+from src.diagram import plot_diagrams, plot_avg_cpu_usage, plot_all_cpus, plot_memory_usage, plot_rapl
 from src.measure import measure, write_labels
 import subprocess
 
@@ -86,6 +86,8 @@ def upload_script(script_path):
     sftp.close()
     ssh.close()
     
+# Run with:
+# sudo -E python -c 'from main import generate_diagrams; generate_diagrams("results/(keep)2025-05-18_16-17-04/idle_benchmark.csv")'
 def generate_diagrams(results_dir):
     for csv_file in os.listdir(results_dir):
         if csv_file.endswith(".csv"):
@@ -98,6 +100,8 @@ def generate_diagrams(results_dir):
             plot_all_cpus(csv_path, output_path)
             output_path = os.path.join(results_dir, f"{os.path.splitext(csv_file)[0]}_mem.png")
             plot_memory_usage(csv_path, output_path)
+            output_path = os.path.join(results_dir, f"{os.path.splitext(csv_file)[0]}_rapl.png")
+            plot_rapl(csv_path, output_path)
             
 def run_local_benchmark(run, timestamp):
     stop_event = threading.Event()

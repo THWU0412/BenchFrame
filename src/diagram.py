@@ -3,63 +3,117 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 
 # Run with:
-# python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/2025-05-14_09-33-14/cpu_seq.csv", "results/2025-05-14_09-33-14/cpu_seq.png")'
-# python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/2025-05-07_11-54-49/simultaneous.csv", "results/2025-05-07_11-54-49/simultaneous.png")'
-
+# sudo -E python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark.csv", "results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark_cpu.png")'
 def plot_diagrams(csv_file, output_file):
     data = pd.read_csv(csv_file, parse_dates=['timestamp'])
 
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle('Power Consumption Diagrams', fontsize=16)
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
 
     # Plot Current
-    # axes[0, 0].plot(data['timestamp'], data['PDU-L_Current'], label='PDU-L_Current')
-    # axes[0, 0].plot(data['timestamp'], data['PDU-R_Current'], label='PDU-R_Current')
-    axes[0, 0].plot(data['timestamp'], data['PDU-L_Current'] + data['PDU-R_Current'], 
+    # axes[0, 0].plot(timestamp_diff, data['PDU-L_Current'], label='PDU-L_Current')
+    # axes[0, 0].plot(timestamp_diff, data['PDU-R_Current'], label='PDU-R_Current')
+    axes[0, 0].plot(timestamp_diff, data['PDU-L_Current'] + data['PDU-R_Current'], 
                     label='Sum_Current_PDU', linestyle='--')
     axes[0, 0].set_title('Current')
-    axes[0, 0].set_xlabel('Timestamp')
+    axes[0, 0].set_xlabel('Duration (s)')
     axes[0, 0].set_ylabel('Current (mA)')
     axes[0, 0].legend()
 
     # Plot PowerFactor
-    # axes[0, 1].plot(data['timestamp'], data['PDU-L_PowerFactor'], label='PDU-L_PowerFactor')
-    # axes[0, 1].plot(data['timestamp'], data['PDU-R_PowerFactor'], label='PDU-R_PowerFactor')
-    axes[0, 1].plot(data['timestamp'], (data['PDU-L_PowerFactor'] + data['PDU-R_PowerFactor']) / 2, 
+    # axes[0, 1].plot(timestamp_diff, data['PDU-L_PowerFactor'], label='PDU-L_PowerFactor')
+    # axes[0, 1].plot(timestamp_diff, data['PDU-R_PowerFactor'], label='PDU-R_PowerFactor')
+    axes[0, 1].plot(timestamp_diff, (data['PDU-L_PowerFactor'] + data['PDU-R_PowerFactor']) / 2, 
                     label='Avg_PowerFactor', linestyle='--')
     axes[0, 1].set_title('PowerFactor')
-    axes[0, 1].set_xlabel('Timestamp')
+    axes[0, 1].set_xlabel('Duration (s)')
     axes[0, 1].set_ylabel('PowerFactor')
     axes[0, 1].legend()
 
     # Plot Load
-    # axes[1, 0].plot(data['timestamp'], data['PDU-L_Load'], label='PDU-L_Load')
-    # axes[1, 0].plot(data['timestamp'], data['PDU-R_Load'], label='PDU-R_Load')
-    axes[1, 0].plot(data['timestamp'], data['PDU-L_Load'] + data['PDU-R_Load'], 
+    # axes[1, 0].plot(timestamp_diff, data['PDU-L_Load'], label='PDU-L_Load')
+    # axes[1, 0].plot(timestamp_diff, data['PDU-R_Load'], label='PDU-R_Load')
+    axes[1, 0].plot(timestamp_diff, data['PDU-L_Load'] + data['PDU-R_Load'], 
                     label='Sum_Load', linestyle='--')
-    axes[1, 0].plot(data['timestamp'], data['IPMI_Current'], label='IPMI_Current')
+    axes[1, 0].plot(timestamp_diff, data['IPMI_Current'], label='IPMI_Current')
     axes[1, 0].set_title('Load')
-    axes[1, 0].set_xlabel('Timestamp')
+    axes[1, 0].set_xlabel('Duration (s)')
     axes[1, 0].set_ylabel('Load (W)')
     axes[1, 0].legend()
 
     # Plot Energy
-    # axes[1, 1].plot(data['timestamp'], data['PDU-L_Energy'], label='PDU-L_Energy')
-    # axes[1, 1].plot(data['timestamp'], data['PDU-R_Energy'], label='PDU-R_Energy')
-    axes[1, 1].plot(data['timestamp'], data['PDU-L_Energy'] + data['PDU-R_Energy'], 
+    # axes[1, 1].plot(timestamp_diff, data['PDU-L_Energy'], label='PDU-L_Energy')
+    # axes[1, 1].plot(timestamp_diff, data['PDU-R_Energy'], label='PDU-R_Energy')
+    axes[1, 1].plot(timestamp_diff, data['PDU-L_Energy'] + data['PDU-R_Energy'], 
                     label='Sum_Energy', linestyle='--')
     axes[1, 1].set_title('Energy')
-    axes[1, 1].set_xlabel('Timestamp')
+    axes[1, 1].set_xlabel('Duration (s)')
     axes[1, 1].set_ylabel('Energy (Wh)')
     axes[1, 1].legend()
+    
+    watthours = data['PDU-L_Energy'].iloc[-1] + data['PDU-R_Energy'].iloc[-1]
+    print(f"Total energy consumed: {watthours} Wh = {watthours * 3600} Joules = {watthours * 3600 * 1000000} microJoules")
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file)
     plt.close()
 
 # Run with:
-# python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-08_11-33-52/sequential.csv", "results/2025-05-08_11-33-52/cpu_sequential.png")'
+# sudo -E python -c 'from src.diagram import plot_rapl; plot_rapl("results/(keep)2025-05-18_16-17-04/idle_benchmark.csv", "results/(keep)2025-05-18_16-17-04/idle_benchmark_rapl.png")'
+def plot_rapl(csv_file, output_file):
+    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 10))
+    fig.suptitle('RAPL Power Consumption', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    rapl_columns = [col for col in data.columns if 'RAPL' in col]
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
+    # How to understand this rapl value
+    # So rapl just counts the energy units. One energy unit is just an abstract value and can be different depending on the processor.
+    # Apparently, we can figure that value out by readin the msr registry (whatever that is).
+    # So first load it with `sudo modprobe msr`
+    # Then read the value with `sudo rdmsr -X 0x606`
+    # This returns:
+    #   0xA0E03 = 1010 0000 01110 0000 0011
+    # And now somewhere in there is the value we are looking for.
+    # Chatty returned this table:
+    # RAPL MSR 0x606 field breakdown:
+    # | Field        | Bits     | Value (binary) | Value (decimal) |
+    # | ------------ | -------- | -------------- | --------------- |
+    # | Power Units  | [3:0]    | 0011           | 3               |
+    # | Energy Units | [12:8]   | 01110          | 14              |
+    # | Time Units   | [19:16]  | 1010           | 10              |
+    #  So that would mean that the energy unit is 1/2^14 = 0.000061035 joules = 61.035 microJoules
+    
+    # No idea wether this is correct or not, but it seems to be the right order of magnitude.
+    
+    for col in rapl_columns:
+        diffs = data[col].diff().fillna(0)
+        axes[0].plot(timestamp_diff, diffs, label=col)
+        axes[0].set_title('RAPL Power Consumption Per Socket')
+        axes[0].set_xlabel('Duration (s)')
+        axes[0].set_ylabel('Power Units (?J)')
+        axes[0].legend()
+    if rapl_columns:
+        diffs_total = data[rapl_columns].sum(axis=1).diff().fillna(0)
+        axes[1].plot(timestamp_diff, diffs_total, label='Sum_RAPL', linestyle='--', color='black')
+        axes[1].set_title('RAPL Power Consumption Total')
+        axes[1].set_xlabel('Duration (s)')
+        axes[1].set_ylabel('Power Units (?J)')
+        axes[1].legend()
+    microjoules = diffs_total.iloc[-1] * 61.035
+    print(f"Total energy consumed: {microjoules / 3600} Wh = {microjoules / 1000000} Joules = {microjoules} microJoules")
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file)
+    plt.close()
+
+# Run with:
+# python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark.csv", "results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark_avg.png")'
 # python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-08_11-33-52/simultaneous.csv", "results/2025-05-08_11-33-52/cpu_simultaneous.png")'
 def plot_avg_cpu_usage(csv_file, output_file):
     data = pd.read_csv(csv_file, parse_dates=['timestamp'])
@@ -67,14 +121,18 @@ def plot_avg_cpu_usage(csv_file, output_file):
     fig, axes = plt.subplots(figsize=(15, 10))
     fig.suptitle('CPU Usage', fontsize=16)
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    # TODO: Change to be more generic (Per CPU column)
+    # rapl_columns = [col for col in data.columns if 'CPU' in col and 'RAPL' not in col]
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
 
     data['Average_CPU'] = data[[f'CPU{i}' for i in range(1, 21)]].mean(axis=1)
     data['Avg_CPU_smooth'] = data['Average_CPU'].rolling(window=10).mean()
-    axes.plot(data['timestamp'], data['Average_CPU'], label='Average_CPU', color='red', linewidth=2)
-    axes.plot(data['timestamp'], data['Avg_CPU_smooth'], label='Smoothed Avg CPU', color='blue', linewidth=2)
+    axes.plot(timestamp_diff, data['Average_CPU'], label='Average_CPU', color='red', linewidth=2)
+    axes.plot(timestamp_diff, data['Avg_CPU_smooth'], label='Smoothed Avg CPU', color='blue', linewidth=2)
 
     axes.set_title('CPU Usage Over Time')
-    axes.set_xlabel('Timestamp')
+    axes.set_xlabel('Duration (s)')
     axes.set_ylabel('Avg CPU Usage (%)')
     axes.legend(ncol=2, loc='upper center', bbox_to_anchor=(0.5, -0.1))
 
@@ -91,14 +149,15 @@ def plot_all_cpus(csv_file, output_file):
     fig, axes = plt.subplots(4, 5, figsize=(15, 10))  # 4 rows, 5 columns
     fig.suptitle('CPU Usage', fontsize=16)
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
 
     for i in range(1, 21):
         row = (i - 1) // 5
         col = (i - 1) % 5
         ax = axes[row, col]
-        ax.plot(data['timestamp'], data[f'CPU{i}'], label=f'CPU{i}')
+        ax.plot(timestamp_diff, data[f'CPU{i}'], label=f'CPU{i}')
         ax.set_title(f'CPU {i}')
-        ax.set_xlabel('Timestamp')
+        ax.set_xlabel('Duration (s)')
         ax.set_ylabel('Usage (%)')
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
@@ -111,11 +170,12 @@ def plot_memory_usage(csv_file, output_file):
     fig, axes = plt.subplots(figsize=(15, 10))
     fig.suptitle('Memory Usage', fontsize=16)
     fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
 
-    axes.plot(data['timestamp'], data['Memory_Usage'], label='Memory Usage', color='green', linewidth=2)
+    axes.plot(timestamp_diff, data['Memory_Usage'], label='Memory Usage', color='green', linewidth=2)
 
     axes.set_title('Memory Usage Over Time')
-    axes.set_xlabel('Timestamp')
+    axes.set_xlabel('Duration (s)')
     axes.set_ylabel('Memory Usage (%)')
     axes.legend()
 
