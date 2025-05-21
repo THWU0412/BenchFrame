@@ -4,3 +4,4 @@ venv/
 examples/
 logs/
 host.conf
+tmp/
