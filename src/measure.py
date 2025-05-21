@@ -124,7 +124,8 @@ def setup_IPMI():
     
     ipmi.target = pyipmi.Target(ipmb_address=0x20)
     ipmi.session.set_session_type_rmcp(config['host']['IPMI_IP'])
-    ipmi.session.set_auth_type_user(config['host']['IPMI_AUTH'][0], config['host']['IPMI_AUTH'][1])
+    credentials = tuple(part.strip() for part in config['host']['IPMI_AUTH'].strip("()").split(','))
+    ipmi.session.set_auth_type_user(credentials[0], credentials[1])
     ipmi.session.establish()
     return ipmi
 

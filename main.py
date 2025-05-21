@@ -85,7 +85,7 @@ def upload_script(script_path):
     ssh.close()
     
 # Run with:
-# sudo -E python -c 'from main import generate_diagrams; generate_diagrams("results/(keep)2025-05-18_16-17-04/idle_benchmark.csv")'
+# sudo -E python -c 'from main import generate_diagrams; generate_diagrams("results/2025-05-21_15-22-37/")'
 def generate_diagrams(results_dir):
     for csv_file in os.listdir(results_dir):
         if csv_file.endswith(".csv"):
@@ -206,4 +206,4 @@ if __name__ == "__main__":
             logger.info("------- Finished Connection Benchmark -------")
         else:
             continue
-    # generate_diagrams(results_dir)
+    generate_diagrams(results_dir)
