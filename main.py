@@ -174,6 +174,7 @@ if __name__ == "__main__":
         if folder_item.endswith(".sh"):
             run = (os.path.splitext(folder_item)[0], f"scripts/{folder_item}")
             run_local_benchmark(run, timestamp)
+            time.sleep(10)
         elif os.path.isdir(os.path.join('scripts/', folder_item)):
             # TODO: Fix that shit!
             continue

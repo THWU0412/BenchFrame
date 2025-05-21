@@ -3,7 +3,7 @@
 start_testrun=$(date)
 
 # Run idle benchmark
-sleep 20
+sleep 60
 
 end_testrun=$(date)
 

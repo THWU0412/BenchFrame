@@ -5,7 +5,10 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 # Run with:
 # sudo -E python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark.csv", "results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark_cpu.png")'
 def plot_diagrams(csv_file, output_file):
-    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
 
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle('Power Consumption Diagrams', fontsize=16)
@@ -54,8 +57,8 @@ def plot_diagrams(csv_file, output_file):
     axes[1, 1].set_ylabel('Energy (Wh)')
     axes[1, 1].legend()
     
-    watthours = data['PDU-L_Energy'].iloc[-1] + data['PDU-R_Energy'].iloc[-1]
-    print(f"Total energy consumed: {watthours} Wh = {watthours * 3600} Joules = {watthours * 3600 * 1000000} microJoules")
+    wattseconds = data['PDU-L_Energy'].iloc[-1] + data['PDU-R_Energy'].iloc[-1]
+    print(f"(PDU) Total energy consumed: {wattseconds / 3600} W = {wattseconds} Joules = {wattseconds * 1000000} microJoules")
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file)
@@ -64,7 +67,10 @@ def plot_diagrams(csv_file, output_file):
 # Run with:
 # sudo -E python -c 'from src.diagram import plot_rapl; plot_rapl("results/(keep)2025-05-18_16-17-04/idle_benchmark.csv", "results/(keep)2025-05-18_16-17-04/idle_benchmark_rapl.png")'
 def plot_rapl(csv_file, output_file):
-    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 10))
     fig.suptitle('RAPL Power Consumption', fontsize=16)
@@ -106,7 +112,8 @@ def plot_rapl(csv_file, output_file):
         axes[1].set_ylabel('Power Units (?J)')
         axes[1].legend()
     microjoules = diffs_total.iloc[-1] * 61.035
-    print(f"Total energy consumed: {microjoules / 3600} Wh = {microjoules / 1000000} Joules = {microjoules} microJoules")
+    print(f"Diffs total: {diffs_total.iloc[-1]}")
+    print(f"(RAPL) Total energy consumed: {microjoules / 3600} Wh = {microjoules / 1000000} Joules = {microjoules} microJoules")
     
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file)
@@ -116,7 +123,10 @@ def plot_rapl(csv_file, output_file):
 # python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark.csv", "results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark_avg.png")'
 # python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/2025-05-08_11-33-52/simultaneous.csv", "results/2025-05-08_11-33-52/cpu_simultaneous.png")'
 def plot_avg_cpu_usage(csv_file, output_file):
-    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
 
     fig, axes = plt.subplots(figsize=(15, 10))
     fig.suptitle('CPU Usage', fontsize=16)
@@ -144,7 +154,10 @@ def plot_avg_cpu_usage(csv_file, output_file):
 # python -c 'from src.diagram import plot_all_cpus; plot_all_cpus("results/2025-05-07_16-56-44/sequential.csv", "results/2025-05-07_16-56-44/cpu_sequential_all.png")'
 # python -c 'from src.diagram import plot_all_cpus; plot_all_cpus("results/2025-05-07_16-56-44/simultaneous.csv", "results/2025-05-07_16-56-44/cpu_simultaneous_all.png")'
 def plot_all_cpus(csv_file, output_file):
-    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
 
     fig, axes = plt.subplots(4, 5, figsize=(15, 10))  # 4 rows, 5 columns
     fig.suptitle('CPU Usage', fontsize=16)
@@ -165,7 +178,10 @@ def plot_all_cpus(csv_file, output_file):
     plt.close()
 
 def plot_memory_usage(csv_file, output_file):
-    data = pd.read_csv(csv_file, parse_dates=['timestamp'])
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
 
     fig, axes = plt.subplots(figsize=(15, 10))
     fig.suptitle('Memory Usage', fontsize=16)

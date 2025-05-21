@@ -5,9 +5,8 @@ start_testrun=$(date)
 sleep 2
 
 # Step-wise CPU ramp-up
-for cpu_count in 5 10 15 20; do
-    end_cpu=$((cpu_count - 1))
-    taskset -c 0-"$end_cpu" stress-ng --cpu "$cpu_count" --cpu-method matrixprod --timeout 15s
+for cpu_load in 25 50 75 100; do
+    stress-ng --cpu 0 --cpu-load "$cpu_load" --timeout 15s
 done
 
 sleep 2
