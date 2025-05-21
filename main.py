@@ -26,8 +26,10 @@ def run_script(run, host=None, username=None, key_path=None):
         print("Error:", stderr.read().decode())
         
         output = stdout.read().decode()
-        times_str = [line for line in output.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
-        times_dt = [datetime.strptime(item.strip(), '%a %b %d %I:%M:%S %p %Z %Y') for item in times_str]
+        
+        # TODO: Fix that shit!
+        # times_str = [line for line in output.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
+        # times_dt = [datetime.strptime(item.strip(), '%a %b %d %I:%M:%S %p %Z %Y') for item in times_str]
         ssh.close()
     else:
         print(f"Running {run[0]} on local host...")
@@ -40,9 +42,10 @@ def run_script(run, host=None, username=None, key_path=None):
         logger.info(f"Started script with PID: {process.pid}")
         process.wait()
         stdout, stderr = process.communicate()
-        times_str = [line for line in stdout.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
-        times_dt = [datetime.strptime(item.strip(), '%a %b %d %I:%M:%S %p %Z %Y') for item in times_str]
-    return times_dt
+        # TODO: Fix that shit!
+        # times_str = [line for line in stdout.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
+        # times_dt = [datetime.strptime(item.strip(), '%a %b %d %I:%M:%S %p %Z %Y') for item in times_str]
+    # return times_dt
 
 def run_remote_vm_script(host, username, key_path, run):
     ssh = paramiko.SSHClient()
@@ -111,7 +114,7 @@ def run_local_benchmark(run, timestamp):
         print(f"Running host test {run[0]}...")
         logger.info(f"Running host test {run[0]}...")
         # label_times = run_remote_vm_script(config['vm']['VM_HOST'], config['vm']['VM_USER'], config['vm']['VM_SSH_KEY'], run)
-        label_times = run_script(run)
+        run_script(run)
     finally:
         stop_event.set()
         logger_thread.join()
@@ -128,7 +131,7 @@ def run_remote_benchmark(run, timestamp):
         logger_thread = threading.Thread(target=measure, args=(stop_event, run[0], timestamp))
         logger_thread.start()
         try:
-            label_times = run_script(run)
+            run_script(run)
         finally:
             stop_event.set()
             logger_thread.join()
@@ -159,7 +162,7 @@ def run_remote_benchmark(run, timestamp):
         # print("Error:", stderr.read().decode())
         
         try:
-            label_times = run_script(run, config['remote']['REMOTE_HOST'], config['remote']['REMOTE_USER'], config['remote']['REMOTE_SSH_KEY'])
+            run_script(run, config['remote']['REMOTE_HOST'], config['remote']['REMOTE_USER'], config['remote']['REMOTE_SSH_KEY'])
         finally:
             ssh.exec_command("tmux kill-session -t measure")
             ssh.close()
