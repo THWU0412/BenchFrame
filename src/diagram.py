@@ -1,6 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
+import numpy as np
+from collections import Counter
 
 # Run with:
 # sudo -E python -c 'from src.diagram import plot_diagrams; plot_diagrams("results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark.csv", "results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark_cpu.png")'
@@ -40,8 +42,28 @@ def plot_diagrams(csv_file, output_file):
     # axes[1, 0].plot(timestamp_diff, data['PDU-L_Load'], label='PDU-L_Load')
     # axes[1, 0].plot(timestamp_diff, data['PDU-R_Load'], label='PDU-R_Load')
     axes[1, 0].plot(timestamp_diff, data['PDU-L_Load'] + data['PDU-R_Load'], 
-                    label='Sum_Load', linestyle='--')
+                    label='Sum_Load')
     axes[1, 0].plot(timestamp_diff, data['IPMI_Current'], label='IPMI_Current')
+    load_smooth = (data['PDU-L_Load'] + data['PDU-R_Load']).rolling(window=10).mean()
+    axes[1, 0].plot(timestamp_diff, load_smooth, label='Smoothed PDU Load', color='red', linestyle='--')
+    
+    rounded_load = np.round((data['PDU-L_Load'] + data['PDU-R_Load']) / 5) * 5
+    counts = Counter(rounded_load)
+    
+    min_count = 20
+    
+    plateau_values = [val for val, count in counts.items() if count >= min_count]
+    min_val = np.min(load_smooth)
+    max_val = np.max(load_smooth)
+    
+    for val in plateau_values:
+        axes[1, 0].axhline(y=val, linestyle=':', color='gray', linewidth=1)
+        axes[1, 0].text(timestamp_diff[-1], val, f"{val:.1f}", va='center', ha='right', fontsize=8)
+
+    # Add min and max lines in a different style
+    axes[1, 0].axhline(y=min_val, linestyle='--', color='blue', label=f"Min: {min_val:.2f}")
+    axes[1, 0].axhline(y=max_val, linestyle='--', color='green', label=f"Max: {max_val:.2f}")
+    
     axes[1, 0].set_title('Load')
     axes[1, 0].set_xlabel('Duration (s)')
     axes[1, 0].set_ylabel('Load (W)')

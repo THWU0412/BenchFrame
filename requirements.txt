@@ -1,6 +1,7 @@
-Netio
-paramiko
-python-ipmi
-matplotlib
-pandas
-psutil
+Netio==1.0.10
+paramiko==3.5.1
+python-ipmi==0.5.7
+matplotlib==3.10.3
+pandas==2.2.2
+psutil==7.0.0
+numpy==2.1.1

@@ -7,15 +7,7 @@ import pyipmi
 import psutil
 import pyipmi.interfaces
 import os
-
-NETIO_IP_L = "http://192.168.1.78/netio.json"
-NETIO_IP_R = "http://192.168.1.79/netio.json"
-NETIO_AUTH = ("admin", "password")
-
-IPMI_IP = "192.168.1.203"
-IPMI_AUTH = ("atlstudent", "56iPmIuSeR")
-
-PDU_NODE_ID = 1
+from src.util import config, logger
 
 # TODO: Fix that shit!
 # Run with:
@@ -97,22 +89,22 @@ def read_rapl(sockets):
             with open(socket_paths[1], 'r') as file:
                 data_rapl.append(int(file.read().strip()))
         except Exception as e:
-            print(f"Error reading RAPL data from {socket}: {e}")
+            logger.error(f"Error reading RAPL data from {socket}: {e}")
             return None
     return data_rapl
 
 
 def setup_PDU():
-    PDU_L = Netio(NETIO_IP_L, auth_rw=NETIO_AUTH)
-    PDU_R = Netio(NETIO_IP_R, auth_rw=NETIO_AUTH)
+    PDU_L = Netio(config['host']['NETIO_IP_L'], auth_rw=config['host']['NETIO_AUTH'])
+    PDU_R = Netio(config['host']['NETIO_IP_R'], auth_rw=config['host']['NETIO_AUTH'])
     return PDU_L, PDU_R
 
 # Run with:
 # python -c 'from src.measure import setup_PDU, read_PDU; PDU_L, PDU_R = setup_PDU(); print(read_PDU(PDU_L, PDU_R));'
 def read_PDU(PDU_L, PDU_R):
     
-    output_L = PDU_L.get_output(PDU_NODE_ID)
-    output_R = PDU_R.get_output(PDU_NODE_ID)
+    output_L = PDU_L.get_output(int(config['host']['PDU_NODE_ID']))
+    output_R = PDU_R.get_output(int(config['host']['PDU_NODE_ID']))
 
     return {
         'PDU-L_Current': output_L.Current,            # In mA
@@ -131,21 +123,21 @@ def setup_IPMI():
     ipmi = pyipmi.create_connection(interface)
     
     ipmi.target = pyipmi.Target(ipmb_address=0x20)
-    ipmi.session.set_session_type_rmcp(IPMI_IP)
-    ipmi.session.set_auth_type_user(IPMI_AUTH[0], IPMI_AUTH[1])
+    ipmi.session.set_session_type_rmcp(config['host']['IPMI_IP'])
+    ipmi.session.set_auth_type_user(config['host']['IPMI_AUTH'][0], config['host']['IPMI_AUTH'][1])
     ipmi.session.establish()
     return ipmi
 
 # Run with:
 # python -c 'from src.measure import read_IPMI, setup_IPMI; ipmi = setup_IPMI(); print(read_IPMI(ipmi));'
 # Allowed IPMI commands:
-# ipmitool -H 192.168.1.203 sensor -U atlstudent -P 56iPmIuSeR -L USER
+# ipmitool -H 192.168.1.209 sensor -U atlstudent -P 56iPmIuSeR -L USER
 # ipmitool -H 192.168.1.203 dcmi power reading -U atlstudent -P 56iPmIuSeR -L ADMINISTRATOR
 def read_IPMI(ipmi):
     try:
         power_reading = ipmi.get_power_reading(1)
     except Exception as e:
-        print(f"Error reading IPMI power data: {e}")
+        logger.error(f"Error reading IPMI power data: {e}")
         return None
 
     return {

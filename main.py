@@ -6,16 +6,7 @@ import os
 from src.diagram import plot_diagrams, plot_avg_cpu_usage, plot_all_cpus, plot_memory_usage, plot_rapl
 from src.measure import measure, write_labels
 import subprocess
-
-# Configuration for remote host
-REMOTE_HOST = "192.168.1.109"
-REMOTE_USER = "twuttge"
-REMOTE_SSH_KEY = "/home/twuttge/.ssh/atlarge"
-
-# Configuration for VM
-VM_HOST = "192.168.155.2"
-VM_USER = "cloud_controller_twuttge"
-VM_SSH_KEY = "/home/twuttge/.ssh/id_rsa_continuum"
+from src.util import logger, config
 
 # Run with:
 # python -c 'from main import run_script; run_script("node9", "twuttge", "/home/twuttge/.ssh/atlarge", ["idle_benchmark"]);'
@@ -28,20 +19,25 @@ def run_script(run, host=None, username=None, key_path=None):
         ssh.exec_command(f"chmod +x {script_path}")
         stdin, stdout, stderr = ssh.exec_command(f"bash {script_path}")
         stdout.channel.recv_exit_status()
+        
+        # DEBUG SHIT
         print("Finished remote shit")
         print("Output:", stdout.read().decode())
         print("Error:", stderr.read().decode())
+        
         output = stdout.read().decode()
         times_str = [line for line in output.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
         times_dt = [datetime.strptime(item.strip(), '%a %b %d %I:%M:%S %p %Z %Y') for item in times_str]
         ssh.close()
     else:
         print(f"Running {run[0]} on local host...")
+        logger.info(f"Running {run[0]} on local host...")
         # Make the script executable
         script_path = f"/home/twuttge/thesis/continuum_energy_benchmark/{run[1]}"
         os.chmod(script_path, 0o755)
         process = subprocess.Popen(['bash', script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print(f"Started script with PID: {process.pid}")
+        logger.info(f"Started script with PID: {process.pid}")
         process.wait()
         stdout, stderr = process.communicate()
         times_str = [line for line in stdout.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
@@ -57,6 +53,7 @@ def run_remote_vm_script(host, username, key_path, run):
     ssh.exec_command(f"chmod +x {script_path}")
     
     print(f"Running {run[0]} on remote host...")
+    logger.info(f"Running {run[0]} on remote host...")
     stdin, stdout, stderr = ssh.exec_command(f"bash {script_path}")
     stdout.channel.recv_exit_status()
     output = stdout.read().decode()
@@ -68,15 +65,16 @@ def run_remote_vm_script(host, username, key_path, run):
 def upload_script(script_path):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=REMOTE_HOST, username=REMOTE_USER, key_filename=REMOTE_SSH_KEY)
+    ssh.connect(hostname=config['remote']['REMOTE_HOST'], username=config['remote']['REMOTE_USER'], key_filename=config['remote']['REMOTE_SSH_KEY'])
 
     sftp = ssh.open_sftp()
-    remote_dir = f'/home/{REMOTE_USER}/tmp/'
+    remote_dir = f'/home/{config["remote"]["REMOTE_USER"]}/tmp/'
 
     try:
         sftp.mkdir(remote_dir)
     except IOError:
         print(f"Remote directory {remote_dir} already exists.")
+        logger.warning(f"Remote directory {remote_dir} already exists.")
 
     local_path = os.path.join('.', script_path)
     remote_path = os.path.join(remote_dir, script_path.split('/')[-1])
@@ -109,19 +107,23 @@ def run_local_benchmark(run, timestamp):
     logger_thread.start()
     try:
         print("------- Start Run -------")
+        logger.info("------- Start Run -------")
         print(f"Running host test {run[0]}...")
-        # label_times = run_remote_vm_script(VM_HOST, VM_USER, VM_SSH_KEY, run)
+        logger.info(f"Running host test {run[0]}...")
+        # label_times = run_remote_vm_script(config['vm']['VM_HOST'], config['vm']['VM_USER'], config['vm']['VM_SSH_KEY'], run)
         label_times = run_script(run)
     finally:
         stop_event.set()
         logger_thread.join()
         print(f"------- Finished Run -------")
+        logger.info(f"------- Finished Run -------")
         # write_labels(label_times, run[0], timestamp)
         time.sleep(5)
 
 def run_remote_benchmark(run, timestamp):
     if "local" in run[0]:
         print(f"Running local test {run[0]}...")
+        logger.info(f"Running local test {run[0]}...")
         stop_event = threading.Event()
         logger_thread = threading.Thread(target=measure, args=(stop_event, run[0], timestamp))
         logger_thread.start()
@@ -131,16 +133,18 @@ def run_remote_benchmark(run, timestamp):
             stop_event.set()
             logger_thread.join()
             print(f"------- Finished Run -------")
+            logger.info(f"------- Finished Run -------")
             # write_labels(label_times, folder_item)
             time.sleep(5)
 
     elif "remote" in run[0]:
         print(f"Running remote test {run[0]}...")
+        logger.info(f"Running remote test {run[0]}...")
         upload_script(run[1])
         
         ssh = paramiko.SSHClient()
         ssh.load_host_keys(os.path.expanduser("~/.ssh/known_hosts"))
-        ssh.connect(REMOTE_HOST, username=REMOTE_USER, key_filename=REMOTE_SSH_KEY)
+        ssh.connect(config['remote']['REMOTE_HOST'], username=config['remote']['REMOTE_USER'], key_filename=config['remote']['REMOTE_SSH_KEY'])
         
         session_name = "measure"
         command = (
@@ -155,7 +159,7 @@ def run_remote_benchmark(run, timestamp):
         # print("Error:", stderr.read().decode())
         
         try:
-            label_times = run_script(run, REMOTE_HOST, REMOTE_USER, REMOTE_SSH_KEY)
+            label_times = run_script(run, config['remote']['REMOTE_HOST'], config['remote']['REMOTE_USER'], config['remote']['REMOTE_SSH_KEY'])
         finally:
             ssh.exec_command("tmux kill-session -t measure")
             ssh.close()
@@ -179,6 +183,7 @@ if __name__ == "__main__":
             # TODO: Fix that shit!
             continue
             print("------- Start Connection Benchmark -------")
+            logger.info("------- Start Connection Benchmark -------")
             runs = []
             for item in os.listdir(os.path.join('scripts/', folder_item)):
                 if item.endswith(".sh"):
@@ -198,6 +203,7 @@ if __name__ == "__main__":
             for p in processes:
                 p.wait()
             print("------- Finished Connection Benchmark -------")
+            logger.info("------- Finished Connection Benchmark -------")
         else:
             continue
-    generate_diagrams(results_dir)
+    # generate_diagrams(results_dir)

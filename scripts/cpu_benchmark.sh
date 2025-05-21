@@ -5,7 +5,7 @@ start_testrun=$(date)
 sleep 2
 
 # Run CPU benchmark
-stress-ng --cpu 0 --cpu-method matrixprod --timeout 20s
+stress-ng --cpu 0 --timeout 20s
 
 sleep 2
 
