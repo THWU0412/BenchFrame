@@ -8,6 +8,7 @@ import psutil
 import pyipmi.interfaces
 import os
 from src.util import config, logger
+import redfish
 
 # TODO: Fix that shit!
 # Run with:
@@ -31,7 +32,10 @@ def measure(stop_event, filename, timestamp):
         "PDU-L_Current", "PDU-L_PowerFactor", "PDU-L_Load", "PDU-L_Energy",
         "PDU-R_Current", "PDU-R_PowerFactor", "PDU-R_Load", "PDU-R_Energy",
         # IPMI data
-        "IPMI_Current", "IPMI_State", 
+        "IPMI_Current", "IPMI_State",
+        # Redfish data
+        "Redfish_PowerControl_Current", "Redfish_PowerSupplies1_InputWatts", "Redfish_PowerSupplies1_OutputWatts",
+        "Redfish_PowerSupplies2_InputWatts", "Redfish_PowerSupplies2_OutputWatts",
         # Memory data
         "Memory_Usage"
     ]
@@ -46,6 +50,7 @@ def measure(stop_event, filename, timestamp):
 
     PDU_L, PDU_R = setup_PDU()
     ipmi = setup_IPMI()
+    REDFISH_OBJ = setup_Redfish()
 
     with open(csv_file, mode='a', newline='') as f:
         writer = csv.writer(f)
@@ -56,19 +61,25 @@ def measure(stop_event, filename, timestamp):
             timestamp = time.strftime("%H:%M:%S", time.localtime())
             data_PDU = read_PDU(PDU_L, PDU_R)
             data_IPMI = read_IPMI(ipmi)
+            data_REDFISH = read_Redfish(REDFISH_OBJ)
             data_MEM = psutil.virtual_memory()
             data_CPU = psutil.cpu_percent(interval=poll_interval, percpu=True)
             data_RAPL = read_rapl(rapl_sockets)
-            if data_PDU is None or data_IPMI is None or data_RAPL is None:
-                continue
+            if data_PDU is None or data_IPMI is None or data_REDFISH is None or data_RAPL is None:
+                row = f.readlines()[-1].strip().split(',')
+                row[0] = timestamp
             row = [
                 timestamp,
                 # PDU data
                 data_PDU['PDU-L_Current'], data_PDU['PDU-L_PowerFactor'], data_PDU['PDU-L_Load'], data_PDU['PDU-L_Energy'],
                 data_PDU['PDU-R_Current'], data_PDU['PDU-R_PowerFactor'], data_PDU['PDU-R_Load'], data_PDU['PDU-R_Energy'],
                 # IPMI data
-                data_IPMI['current'], data_IPMI['state'], 
-                # Memory, battery, and CPU data
+                data_IPMI['current'], data_IPMI['state'],
+                # Redfish data
+                data_REDFISH['powerControl_current'],
+                data_REDFISH['powerSupplies1_InputWatts'], data_REDFISH['powerSupplies1_OutputWatts'],
+                data_REDFISH['powerSupplies2_InputWatts'], data_REDFISH['powerSupplies2_OutputWatts'],
+                # Memory data
                 data_MEM.percent
             ]
             # INTEL-RAPL data
@@ -77,6 +88,8 @@ def measure(stop_event, filename, timestamp):
             row.extend(data_CPU)
             writer.writerow(row)
             f.flush()
+    
+    REDFISH_OBJ.logout()
             
 def read_rapl(sockets):
     data_rapl = []
@@ -133,7 +146,7 @@ def setup_IPMI():
 # python -c 'from src.measure import read_IPMI, setup_IPMI; ipmi = setup_IPMI(); print(read_IPMI(ipmi));'
 # Allowed IPMI commands:
 # ipmitool -H 192.168.1.209 sensor -U atlstudent -P 56iPmIuSeR -L USER
-# ipmitool -H 192.168.1.203 dcmi power reading -U atlstudent -P 56iPmIuSeR -L ADMINISTRATOR
+# ipmitool -H 192.168.1.209 dcmi power reading -U atlstudent -P 56iPmIuSeR -L ADMINISTRATOR
 def read_IPMI(ipmi):
     try:
         power_reading = ipmi.get_power_reading(1)
@@ -150,3 +163,24 @@ def read_IPMI(ipmi):
         'period': round(power_reading.period / 86400000, 2), # Convert ms to days
         'state': power_reading.reading_state
     }
+    
+def setup_Redfish():
+    credentials = tuple(part.strip() for part in config['host']['IPMI_AUTH'].strip("()").split(','))
+    REDFISH_OBJ = redfish.redfish_client(base_url='https://' + config['host']['IPMI_IP'], username=credentials[0], password=credentials[1], default_prefix='/redfish/v1/')
+    REDFISH_OBJ.login(auth="session")
+    return REDFISH_OBJ
+    
+def read_Redfish(REDFISH_OBJ):
+    response = REDFISH_OBJ.get("/redfish/v1/Chassis/1/Power")
+    if response.status == 200:
+        power_data = response.dict
+        return {
+            'powerControl_current': power_data['PowerControl'][0]['PowerConsumedWatts'],
+            'powerSupplies1_InputWatts': power_data['PowerSupplies'][0]['PowerInputWatts'],
+            'powerSupplies1_OutputWatts': power_data['PowerSupplies'][0]['PowerOutputWatts'],
+            'powerSupplies2_InputWatts': power_data['PowerSupplies'][1]['PowerInputWatts'],
+            'powerSupplies2_OutputWatts': power_data['PowerSupplies'][1]['PowerOutputWatts']
+        }
+    else:
+        logger.error(f"Error reading Redfish power data: {response.status} - {response.text}")
+        return None

@@ -140,6 +140,56 @@ def plot_rapl(csv_file, output_file):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file)
     plt.close()
+    
+# Run with:
+# python3 -c 'from src.diagram import print_rapl_data; print_rapl_data("results/2025-05-30_13-09-27/idle_benchmark.csv")'
+def print_rapl_data(csv_file):
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
+    rapl_columns = [col for col in data.columns if 'RAPL' in col]
+    for col in rapl_columns:
+        diffs = data[col].diff().fillna(0)
+    if rapl_columns:
+        diffs_total = data[rapl_columns].sum(axis=1).diff().fillna(0)
+    microjoules = diffs_total.iloc[-1] * 61.035
+    print(f"Diffs total: {diffs_total.iloc[-1]}")
+    print(f"(RAPL) Total energy consumed: {microjoules / 3600} Wh = {microjoules / 1000000} Joules = {microjoules} microJoules")
+    
+def plot_redfish(csv_file, output_file):
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
+
+    fig, axes = plt.subplots(figsize=(15, 10))
+    fig.suptitle('Redfish Power Consumption', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
+
+    columns = [
+        "Redfish_PowerControl_Current",
+        "Redfish_PowerSupplies1_InputWatts",
+        "Redfish_PowerSupplies1_OutputWatts",
+        "Redfish_PowerSupplies2_InputWatts",
+        "Redfish_PowerSupplies2_OutputWatts",
+    ]
+    colors = ['green', 'blue', 'orange', 'purple', 'red']
+    for col, color in zip(columns, colors):
+        if col in data.columns:
+            axes.plot(timestamp_diff, data[col], label=col, linewidth=2, color=color)
+            # print(f"{col}: min={data[col].min()}, max={data[col].max()}, mean={data[col].mean()}")
+
+    axes.set_title('Redfish Power Consumption Over Time')
+    axes.set_xlabel('Duration (s)')
+    axes.set_ylabel('Power (W)')
+    axes.legend()
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file)
+    plt.close()
 
 # Run with:
 # python -c 'from src.diagram import plot_avg_cpu_usage; plot_avg_cpu_usage("results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark.csv", "results/(keep)2025-05-18_16-17-04/cpu_ramp-up_benchmark_avg.png")'
@@ -247,4 +297,38 @@ def make_cpu_usage_gif(csv_file, output_file, interval_ms=200):
     anim = FuncAnimation(fig, update, frames=len(df), interval=interval_ms, blit=False)
 
     anim.save(output_file, writer=PillowWriter(fps=1000 // interval_ms))
+    plt.close()
+
+# Run with:
+# python3 -c 'from src.diagram import plot_pdu_ipmi_redfish_rapl; plot_pdu_ipmi_redfish_rapl("results/2025-05-30_13-09-27/cpu_sim-ramp-up_benchmark.csv", "results/2025-05-30_13-09-27/cpu_sim-ramp-up_benchmark_ipmi_redfish.png")'
+def plot_pdu_ipmi_redfish_rapl(csv_file, output_file):
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
+
+    fig, axes = plt.subplots(figsize=(15, 10))
+    fig.suptitle('PDU, IPMI and Redfish Power', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    timestamp_diff = [(value - data['timestamp'][0]).total_seconds() for value in data['timestamp']]
+
+    axes.plot(timestamp_diff, data['IPMI_Current'], label='IPMI Power', color='blue', linewidth=2)
+    axes.plot(timestamp_diff, data['Redfish_PowerControl_Current'], label='Redfish Power', color='green', linewidth=2)
+    axes.plot(timestamp_diff, data['PDU-L_Load'] + data['PDU-R_Load'], 
+                    label='PDU Power', linestyle='--', color='orange', linewidth=2)
+    rapl_columns = [col for col in data.columns if 'RAPL' in col]
+    if rapl_columns:
+        rapl_power = data[rapl_columns].sum(axis=1).diff().fillna(0) * 61.035 / 10000000
+        print(data[rapl_columns][130:140])
+        print(rapl_power[130:140])
+        axes.plot(timestamp_diff, rapl_power, label='RAPL Power', linestyle='--', color='purple', linewidth=2)
+
+    axes.set_title('PDU, IPMI and Redfish Power Over Time')
+    axes.set_xlabel('Duration (s)')
+    axes.set_ylabel('Power (Watt)')
+    axes.legend()
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file)
     plt.close()

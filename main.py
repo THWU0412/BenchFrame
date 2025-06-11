@@ -3,7 +3,7 @@ import threading
 import time
 from datetime import datetime
 import os
-from src.diagram import plot_diagrams, plot_avg_cpu_usage, plot_all_cpus, plot_memory_usage, plot_rapl
+from src.diagram import plot_diagrams, plot_avg_cpu_usage, plot_all_cpus, plot_memory_usage, plot_rapl, plot_redfish
 from src.measure import measure, write_labels
 import subprocess
 from src.util import logger, config
@@ -103,16 +103,14 @@ def generate_diagrams(results_dir):
             plot_memory_usage(csv_path, output_path)
             output_path = os.path.join(results_dir, f"{os.path.splitext(csv_file)[0]}_rapl.png")
             plot_rapl(csv_path, output_path)
+            output_path = os.path.join(results_dir, f"{os.path.splitext(csv_file)[0]}_redfish.png")
+            plot_redfish(csv_path, output_path)
             
 def run_local_benchmark(run, timestamp):
     stop_event = threading.Event()
     logger_thread = threading.Thread(target=measure, args=(stop_event, run[0], timestamp))
     logger_thread.start()
     try:
-        print("------- Start Run -------")
-        logger.info("------- Start Run -------")
-        print(f"Running host test {run[0]}...")
-        logger.info(f"Running host test {run[0]}...")
         # label_times = run_remote_vm_script(config['vm']['VM_HOST'], config['vm']['VM_USER'], config['vm']['VM_SSH_KEY'], run)
         run_script(run)
     finally:
@@ -176,11 +174,21 @@ if __name__ == "__main__":
     results_dir = f"results/{timestamp}/"
     os.makedirs(results_dir, exist_ok=True)
     # upload_scripts()
+    
+    test_counter = 0
 
     for folder_item in os.listdir('scripts/'):
         if folder_item.endswith(".sh"):
+            print(f"------- Start Run ({test_counter+1}/{len([f for f in os.listdir('scripts/') if f.endswith('.sh')])}) -------")
+            logger.info(f"------- Start Run ({test_counter+1}/{len([f for f in os.listdir('scripts/') if f.endswith('.sh')])}) -------")
+            
             run = (os.path.splitext(folder_item)[0], f"scripts/{folder_item}")
+            
+            print(f"Running host test {run[0]}...")
+            logger.info(f"Running host test {run[0]}...")
+            
             run_local_benchmark(run, timestamp)
+            test_counter += 1
             time.sleep(10)
         elif os.path.isdir(os.path.join('scripts/', folder_item)):
             # TODO: Fix that shit!
