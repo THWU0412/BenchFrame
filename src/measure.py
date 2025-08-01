@@ -46,8 +46,6 @@ def measure(stop_event, filename, timestamp):
     # CPU data
     headers += [f"CPU{i+1}" for i in range(num_cpu)]
 
-    poll_interval = 0.1
-
     PDU_L, PDU_R = setup_PDU()
     ipmi = setup_IPMI()
     REDFISH_OBJ = setup_Redfish()
@@ -63,11 +61,10 @@ def measure(stop_event, filename, timestamp):
             data_IPMI = read_IPMI(ipmi)
             data_REDFISH = read_Redfish(REDFISH_OBJ)
             data_MEM = psutil.virtual_memory()
-            data_CPU = psutil.cpu_percent(interval=poll_interval, percpu=True)
             data_RAPL = read_rapl(rapl_sockets)
+            data_CPU = psutil.cpu_percent(interval=float(config['host']['POLL_INTERVAL']), percpu=True)
             if data_PDU is None or data_IPMI is None or data_REDFISH is None or data_RAPL is None:
-                row = f.readlines()[-1].strip().split(',')
-                row[0] = timestamp
+                continue
             row = [
                 timestamp,
                 # PDU data
@@ -88,6 +85,8 @@ def measure(stop_event, filename, timestamp):
             row.extend(data_CPU)
             writer.writerow(row)
             f.flush()
+            
+        writer.writerow("-")
     
     REDFISH_OBJ.logout()
             
@@ -184,3 +183,55 @@ def read_Redfish(REDFISH_OBJ):
     else:
         logger.error(f"Error reading Redfish power data: {response.status} - {response.text}")
         return None
+
+
+# Run with:
+# sudo -E python3 -c 'from src.measure import clean_results; clean_results("results/2025-06-11_19-33-53");'
+def clean_results(results_dir):
+    os.makedirs(os.path.join(results_dir, "cleaned/"), exist_ok=True)
+    for folder_item in os.listdir(results_dir):
+        if folder_item.endswith(".csv"):
+            try:
+                df = pd.read_csv(os.path.join(results_dir, folder_item))
+                # Example cleaning: drop rows with any NaN values and remove rows with only '-'
+                rep_set = []
+                current = []
+                for _, row in df.iterrows():
+                    if str(row.iloc[0]).startswith('-'):
+                        if current:
+                            rep_set.append(pd.DataFrame(current, columns=df.columns))
+                            current = []
+                    else:
+                        current.append(row)
+                if current:
+                    rep_set.append(pd.DataFrame(current, columns=df.columns))
+                    
+                cleaned = []
+                for rep in rep_set:
+                    # Convert timestamp to seconds (assume format HH:MM:SS)
+                    rep['timestamp_sec'] = rep['timestamp'].apply(lambda x: sum(int(t) * 60 ** i for i, t in enumerate(reversed(str(x).split(":")))))
+                    rep = rep.dropna()
+                    # Group by second and average numeric columns
+                    grouped = rep.groupby('timestamp_sec').mean(numeric_only=True).round(2)
+                    # Reindex to fill missing seconds
+                    idx = range(grouped.index.min(), grouped.index.max() + 1)
+                    grouped = grouped.reindex(idx)
+                    grouped = grouped.interpolate(method='linear').round(2)
+                    grouped['timestamp'] = range(len(grouped))
+                    grouped = grouped.reset_index(drop=True)
+                    cleaned.append(grouped)
+                # Save cleaned reps back to CSV
+                cleaned_with_sep = []
+                for rep in cleaned:
+                    cleaned_with_sep.append(rep)
+                    # Add a separator row with '-' for each column
+                    sep_row = {col: '-' for col in rep.columns}
+                    cleaned_with_sep.append(pd.DataFrame([sep_row]))
+                cleaned_df = pd.concat(cleaned_with_sep, ignore_index=True)
+                out_path = os.path.join(results_dir, "cleaned/", f"{folder_item[:-4]}_cleaned.csv")
+                cleaned_df.to_csv(out_path, index=False)
+                
+                
+            except Exception as e:
+                print(f"Error processing {folder_item}: {e}")
+                

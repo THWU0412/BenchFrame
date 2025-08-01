@@ -2,12 +2,8 @@
 
 start_testrun=$(date)
 
-sleep 2
-
-# Run CPU benchmark
-stress-ng --vm 2 --vm-bytes 80% --timeout 60s
-
-sleep 2
+# Run idle benchmark
+sleep 300
 
 end_testrun=$(date)
 

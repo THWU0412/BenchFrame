@@ -117,7 +117,8 @@ def plot_rapl(csv_file, output_file):
     # | Time Units   | [19:16]  | 1010           | 10              |
     #  So that would mean that the energy unit is 1/2^14 = 0.000061035 joules = 61.035 microJoules
     
-    # No idea wether this is correct or not, but it seems to be the right order of magnitude.
+    # It seems like this assumption is correct. But only if we read the value from the register.
+    # The value we read from energy_uj is the total energy consumed in microjoules.
     
     for col in rapl_columns:
         diffs = data[col].diff().fillna(0)
@@ -300,7 +301,7 @@ def make_cpu_usage_gif(csv_file, output_file, interval_ms=200):
     plt.close()
 
 # Run with:
-# python3 -c 'from src.diagram import plot_pdu_ipmi_redfish_rapl; plot_pdu_ipmi_redfish_rapl("results/2025-05-30_13-09-27/cpu_sim-ramp-up_benchmark.csv", "results/2025-05-30_13-09-27/cpu_sim-ramp-up_benchmark_ipmi_redfish.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_benchmark_cleaned.png")'
 def plot_pdu_ipmi_redfish_rapl(csv_file, output_file):
     data = pd.read_csv(
         csv_file, 
@@ -332,3 +333,195 @@ def plot_pdu_ipmi_redfish_rapl(csv_file, output_file):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file)
     plt.close()
+    
+# Run with:
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_linear_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_linear_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_ramp-up_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_ramp-up_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_sim-ramp-up_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_sim-ramp-up_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/idle_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/idle_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/mem_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/mem_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/network_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/network_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_all_50_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_all_50_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/cpu_half_100_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_half_100_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/storage_read_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/storage_read_benchmark_cleaned.png")'
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_data; plot_cleaned_data("results/2025-06-11_19-33-53/cleaned/storage_write_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/storage_write_benchmark_cleaned.png")'
+def plot_cleaned_data(csv_file, output_file):
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
+
+    # Split the data into runs based on rows starting with '-'
+    run_indices = data.index[data['PDU-L_Current'].astype(str).str.startswith('-')].tolist()
+    runs = []
+    start_idx = 0
+    for idx in run_indices + [len(data)]:
+        run = data.iloc[start_idx:idx].copy()
+        # Remove any separator rows (those starting with '-')
+        run = run[~run['PDU-L_Current'].astype(str).str.startswith('-')]
+        if not run.empty:
+            runs.append(run.reset_index(drop=True))
+        start_idx = idx + 1
+        
+    # ----- Line Plot ------
+
+    fig, ax = plt.subplots(figsize=(15, 10))
+    fig.suptitle('Cleaned Power Data (Multiple Runs)', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    label_ipmi = f'IPMI_Current'
+    label_redfish = f'Redfish_PowerControl_Current'
+    label_pdu = f'PDU_Load'
+    label_rapl = f'RAPL_Load'
+
+    # This plots the power per second with range
+    min_length = min(len(r) for r in runs)
+    avg_ipmi = np.mean([r['IPMI_Current'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    avg_redfish = np.mean([r['Redfish_PowerControl_Current'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    avg_pdu = np.mean([(r['PDU-L_Load'].astype(float) + r['PDU-R_Load'].astype(float)).iloc[:min_length].values for r in runs], axis=0)
+    
+    rapl_columns = [col for col in data.columns if 'RAPL' in col]
+    if rapl_columns:
+        # print([r[rapl_columns].astype(float).sum(axis=1).diff() / 1000000 for r in runs][0].head(4))
+        avg_rapl = np.mean([r[rapl_columns].astype(float).sum(axis=1).diff().fillna(0).iloc[:min_length].values / 1000000 for r in runs], axis=0)
+    
+    avg_timestamp = runs[0]['timestamp'].iloc[:min_length]
+
+    ax.plot(avg_timestamp, avg_ipmi, label=label_ipmi, color='red', linestyle='-')
+    ax.plot(avg_timestamp, avg_redfish, label=label_redfish, color='green', linestyle='--')
+    ax.plot(avg_timestamp, avg_pdu, label=label_pdu, color='blue', linestyle='-')
+    ax.plot(avg_timestamp, avg_rapl, label=label_rapl, color='blue', linestyle='--')
+
+    # This adds the range
+    min_pdu = np.min([r['PDU-L_Load'].astype(float).iloc[:min_length].values + r['PDU-R_Load'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    max_pdu = np.max([r['PDU-L_Load'].astype(float).iloc[:min_length].values + r['PDU-R_Load'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    ax.plot(avg_timestamp, min_pdu, color='blue', linestyle=':')
+    ax.plot(avg_timestamp, max_pdu, color='blue', linestyle=':')
+    ax.fill_between(avg_timestamp, min_pdu, max_pdu, color='blue', alpha=0.2, label='PDU Range')
+    
+    # TEST FOR RAPL
+    # if rapl_columns:
+    #     for col in rapl_columns:
+    #         avg_rapl_col = np.mean([r[col].astype(float).fillna(0).iloc[:min_length].values / 1000000 for r in runs], axis=0)
+    #         ax.plot(avg_timestamp, avg_rapl_col, label=f'{col} (avg)', linestyle='--')
+    #         print("Average value for", col, ":", np.mean(avg_rapl_col))
+    
+    
+    ax.set_title('IPMI, Redfish, and PDU Power Over Time (All Runs)')
+    ax.set_xlabel('Duration (s)')
+    ax.set_ylabel('Power (W)')
+    ax.legend(ncol=3, loc='upper center', bbox_to_anchor=(0.5, -0.08))
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file)
+    plt.close()
+    
+    
+    # ----- Total Energy Plot ------
+    
+    fig, ax = plt.subplots(figsize=(15, 10))
+    fig.suptitle('Total Energy Consumption (Multiple Runs)', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    total_energy_ipmi = [r['IPMI_Current'].astype(float).iloc[:min_length].sum() for r in runs]
+    total_energy_redfish = [r['Redfish_PowerControl_Current'].astype(float).iloc[:min_length].sum() for r in runs]
+    total_energy_pdu = [r['PDU-L_Load'].astype(float).iloc[:min_length].sum() + r['PDU-R_Load'].astype(float).iloc[:min_length].sum() for r in runs]
+    total_energy_rapl = [
+        (r[rapl_columns].astype(float).sum(axis=1).iloc[min_length - 1] - r[rapl_columns].astype(float).sum(axis=1).iloc[0]) / 1_000_000
+        for r in runs
+    ] if rapl_columns else []
+    
+    # print(total_energy_ipmi)
+    # print(total_energy_redfish)
+    # print(total_energy_pdu)
+    # print(total_energy_rapl)
+    
+    ax.boxplot(total_energy_ipmi, positions=[0], widths=0.4, patch_artist=True, 
+               boxprops=dict(facecolor='black', color='black', alpha=0.5), medianprops=dict(color='black'))
+    ax.boxplot(total_energy_redfish, positions=[1], widths=0.4, patch_artist=True, 
+               boxprops=dict(facecolor='red', color='red', alpha=0.5), medianprops=dict(color='red'))
+    ax.boxplot(total_energy_pdu, positions=[2], widths=0.4, patch_artist=True, 
+               boxprops=dict(facecolor='blue', color='blue', alpha=0.5), medianprops=dict(color='blue'))
+    if total_energy_rapl:
+        ax.boxplot(total_energy_rapl, positions=[3], widths=0.4, patch_artist=True, 
+                   boxprops=dict(facecolor='green', color='green', alpha=0.5), medianprops=dict(color='green'))
+    ax.set_xticklabels(['IPMI', 'REDFISH', 'PDU', 'RAPL'])
+    ax.set_title('Total Energy Consumption')
+    ax.set_ylabel('Energy (Joules)')
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    ax.legend([label_ipmi, label_redfish, label_pdu, label_rapl], loc='upper right', fontsize=10)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file.replace('.png', '_total.png'))
+    plt.close()
+
+# Run with:
+# sudo -E python3 -c 'from src.diagram import plot_cleaned_cpu_data; plot_cleaned_cpu_data("results/2025-06-11_19-33-53/cleaned/cpu_benchmark_cleaned.csv", "results/2025-06-11_19-33-53/cleaned/cpu_benchmark_cleaned_cpu.png")'
+def plot_cleaned_cpu_data(csv_file, output_file):
+    data = pd.read_csv(
+        csv_file, 
+        parse_dates=['timestamp'],
+        date_format='%H:%M:%S')
+
+    # Split the data into runs based on rows starting with '-'
+    run_indices = data.index[data['PDU-L_Current'].astype(str).str.startswith('-')].tolist()
+    runs = []
+    start_idx = 0
+    for idx in run_indices + [len(data)]:
+        run = data.iloc[start_idx:idx].copy()
+        # Remove any separator rows (those starting with '-')
+        run = run[~run['PDU-L_Current'].astype(str).str.startswith('-')]
+        if not run.empty:
+            runs.append(run.reset_index(drop=True))
+        start_idx = idx + 1
+        
+    # ----- Line Plot ------
+
+    fig, ax = plt.subplots(figsize=(15, 10))
+    fig.suptitle('Average CPU Usage', fontsize=16)
+    fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
+    
+    # This plots the power per second with range
+    min_length = min(len(r) for r in runs)
+    avg_ipmi = np.mean([r['IPMI_Current'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    avg_redfish = np.mean([r['Redfish_PowerControl_Current'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    avg_pdu = np.mean([(r['PDU-L_Load'].astype(float) + r['PDU-R_Load'].astype(float)).iloc[:min_length].values for r in runs], axis=0)
+    
+    rapl_columns = [col for col in data.columns if 'RAPL' in col]
+    if rapl_columns:
+        # print([r[rapl_columns].astype(float).sum(axis=1).diff() / 1000000 for r in runs][0].head(4))
+        avg_rapl = np.mean([r[rapl_columns].astype(float).sum(axis=1).diff().fillna(0).iloc[:min_length].values / 1000000 for r in runs], axis=0)
+    
+    avg_timestamp = runs[0]['timestamp'].iloc[:min_length]
+
+    ax.plot(avg_timestamp, avg_ipmi, label=label_ipmi, color='red', linestyle='-')
+    ax.plot(avg_timestamp, avg_redfish, label=label_redfish, color='green', linestyle='--')
+    ax.plot(avg_timestamp, avg_pdu, label=label_pdu, color='blue', linestyle='-')
+    ax.plot(avg_timestamp, avg_rapl, label=label_pdu, color='blue', linestyle='--')
+    
+    
+    # This adds the range
+    min_pdu = np.min([r['PDU-L_Load'].astype(float).iloc[:min_length].values + r['PDU-R_Load'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    max_pdu = np.max([r['PDU-L_Load'].astype(float).iloc[:min_length].values + r['PDU-R_Load'].astype(float).iloc[:min_length].values for r in runs], axis=0)
+    ax.plot(avg_timestamp, min_pdu, label=label_pdu, color='blue', linestyle=':')
+    ax.plot(avg_timestamp, max_pdu, label=label_pdu, color='blue', linestyle=':')
+    ax.fill_between(avg_timestamp, min_pdu, max_pdu, color='blue', alpha=0.2, label='PDU Range')
+    
+    # TEST FOR RAPL
+    # if rapl_columns:
+    #     for col in rapl_columns:
+    #         avg_rapl_col = np.mean([r[col].astype(float).fillna(0).iloc[:min_length].values / 1000000 for r in runs], axis=0)
+    #         ax.plot(avg_timestamp, avg_rapl_col, label=f'{col} (avg)', linestyle='--')
+    #         print("Average value for", col, ":", np.mean(avg_rapl_col))
+    
+    
+    ax.set_title('IPMI, Redfish, and PDU Power Over Time (All Runs)')
+    ax.set_xlabel('Duration (s)')
+    ax.set_ylabel('Power (W)')
+    ax.legend(ncol=3, loc='upper center', bbox_to_anchor=(0.5, -0.08))
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_file)
+    plt.close()
+        
+    
