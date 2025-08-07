@@ -448,7 +448,7 @@ def plot_cleaned_data(csv_file, output_file):
     
     # ----- Total Energy Plot ------
     
-    fig, ax = plt.subplots(figsize=(15, 10))
+    fig, ax = plt.subplots(figsize=(12, 10))
     fig.suptitle(f'{csv_file.split("/")[-1].split(".")[0].split("_benchmark")[0].upper()}', fontsize=26)
     # fig.text(0.5, 0.94, f'{csv_file.split("/")[-1].split(".")[0].capitalize()}', ha='center', fontsize=10, color='gray')
     
@@ -474,8 +474,14 @@ def plot_cleaned_data(csv_file, output_file):
     if total_energy_rapl:
         ax.boxplot(total_energy_rapl, positions=[3], widths=0.4, patch_artist=True, 
                    boxprops=dict(facecolor='orange', color='orange', alpha=0.5), medianprops=dict(color='orange'))
+        
+    # Add mean value as text above each boxplot
+    means = [np.mean(total_energy_redfish), np.mean(total_energy_pdu)]
+    if total_energy_rapl:
+        means.append(np.mean(total_energy_rapl))
+    for i, mean_val in enumerate(means):
+        ax.text(i + 1.25, mean_val, f"{mean_val:.1f}", ha='left', va='center', fontsize=14, color='black')
     ax.set_xticklabels(['REDFISH', 'PDU', 'RAPL'])
-    # ax.set_title('Total Energy Consumption')
     ax.set_ylabel('Energy (Joules)', fontsize=20)
     ax.set_xlabel('Power Monitoring Tool', fontsize=20)
     
@@ -483,7 +489,7 @@ def plot_cleaned_data(csv_file, output_file):
     ax.tick_params(axis='y', labelsize=16)
 
     ax.grid(axis='y', linestyle='--', alpha=0.7)
-    ax.legend([label_redfish, label_pdu, label_rapl], loc='upper right', fontsize=18)
+    ax.legend(ncol=3, labels=[label_redfish, label_pdu, label_rapl], loc='upper center', bbox_to_anchor=(0.5, -0.08), fontsize=18)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(output_file.replace('.png', '_total.png'))
     plt.close()

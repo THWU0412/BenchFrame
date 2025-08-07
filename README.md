@@ -1,4 +1,7 @@
 # BenchFrame
+<p>
+  <img src="benchframe-logo.png" alt="BenchFrame Logo" width="200" align="right"  />
+</p>
 BenchFrame is a benchmark framework designed to evaluate and analyze the performance and energy efficiency of computational workloads. It provides a streamlined setup for running experiments, collecting results, and visualizing them via diagrams. The framework supports reproducible benchmarking through virtual environments and automated result storage, making it suitable for research and development in high-performance and energy-aware computing.
 
 
