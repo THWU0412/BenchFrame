@@ -1,5 +1,5 @@
 # BenchFrame
-BenchFrame is a benchmark framework designed to evaluate and analyze the performance and energy efficiency of computational workloads. It provides a streamlined setup for running experiments, collecting results, and integrating with the Continuum project for infrastructure management. The framework supports reproducible benchmarking through virtual environments and automated result storage, making it suitable for research and development in high-performance and energy-aware computing.
+BenchFrame is a benchmark framework designed to evaluate and analyze the performance and energy efficiency of computational workloads. It provides a streamlined setup for running experiments, collecting results, and visualizing them via diagrams. The framework supports reproducible benchmarking through virtual environments and automated result storage, making it suitable for research and development in high-performance and energy-aware computing.
 
 
 ## Steps to Set Up a `venv`
@@ -38,14 +38,15 @@ These tools are:
 | stress-ng     | CPU       | https://github.com/ColinIanKing/stress-ng      |
 | iperf3        | Network   | https://github.com/esnet/iperf                 |
 | fio           | Storage   | https://github.com/axboe/fio                   |
-| stressapptest | RAM       | https://github.com/stressapptest/stressapptest |
+
+> [!NOTE]  
+> These tools need to be installed globally, since BenchFrame must be executed with sudo permissions.
 
 ## How to add experiments
 The `scripts` directory contains all benchmark experiment scripts. To add a new experiment, simply create a shell script in this directory. Ensure the script has a unique and descriptive name, as it will serve as the identifier for running the experiment.
 
 ## Run the Framework
-1. Create the infrastructure using the continuum project found here:\
-[Continuum Project Repository](https://github.com/atlarge-research/continuum)
+1. Setup the virtual evironment as described [here](#steps-to-set-up-a-venv)
 2. Run the application
     ```bash
     sudo -E python main.py

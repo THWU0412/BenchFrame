@@ -2,9 +2,8 @@
 
 start_testrun=$(date)
 
-sleep 2
-
-stress-ng --vm 2 --vm-bytes 75% --timeout 60s
+# VM stress has a warm up phase, so we run it a bit shorter
+stress-ng --vm 2 --vm-bytes 75% --timeout 28s
 
 sleep 2
 

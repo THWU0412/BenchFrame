@@ -64,7 +64,7 @@ def run_remote_vm_script(host, username, key_path, run):
     return [line for line in output.split('\n') if line.startswith('MEASUREMENT_TIMES:')][0].split('(')[1].split(')')[0].split(',')
     
 # Run with:
-# sudo -E python3 -c 'from main import generate_all_diagrams; generate_all_diagrams("results/2025-05-21_15-22-37/")'
+# sudo -E python3 -c 'from main import generate_all_diagrams; generate_all_diagrams("results/2025-08-04_12-46-05/")'
 def generate_all_diagrams(results_dir):
     for csv_file in os.listdir(results_dir):
         if csv_file.endswith(".csv"):
@@ -82,13 +82,14 @@ def generate_all_diagrams(results_dir):
             output_path = os.path.join(results_dir, "/diagrams/", f"{os.path.splitext(csv_file)[0]}_redfish.png")
             plot_redfish(csv_path, output_path)
 
-# sudo -E python3 -c 'from main import clean_data_and_generate_diagrams; clean_data_and_generate_diagrams("results/2025-06-11_19-33-53/")'
+# sudo -E python3 -c 'from main import clean_data_and_generate_diagrams; clean_data_and_generate_diagrams("results/2025-08-04_12-46-05/")'
 def clean_data_and_generate_diagrams(results_dir):
     clean_results(results_dir)
     for file in os.listdir(os.path.join(results_dir, "cleaned/")):
         if file.endswith(".csv"):
             csv_path = os.path.join(results_dir, "cleaned/", file)
             output_path = os.path.join(results_dir, "cleaned/", f"{os.path.splitext(file)[0]}.png")
+            print(f"Generating diagrams for {csv_path}...")
             plot_cleaned_data(csv_path, output_path)
             
 def run_benchmark(run, timestamp):

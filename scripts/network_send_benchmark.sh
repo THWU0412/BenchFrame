@@ -2,16 +2,13 @@
 
 start_testrun=$(date)
 
-logfile="/home/twuttge/thesis/continuum_energy_benchmark/logs/net_test/iperf3_server_$(date +"%Y%m%d_%H%M%S" --date='TZ="Europe/Berlin"').log"
-touch "$logfile"
-
-ssh -i /home/twuttge/.ssh/atlarge twuttge@node3 "iperf3 -s -1" | tee -a "$logfile" &
+ssh -i /home/twuttge/.ssh/atlarge twuttge@node3 "iperf3 -s -1" &
 
 # Wait for the server to start
 sleep 2
 
 # Run network benchmark
-/home/twuttge/.local/bin/iperf3 -c 192.168.1.103 -t 60 | tee "$logfile"
+/home/twuttge/.local/bin/iperf3 -c 192.168.1.103 -t 30
 
 end_testrun=$(date)
 

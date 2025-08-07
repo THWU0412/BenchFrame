@@ -2,6 +2,8 @@ import configparser
 from datetime import datetime
 import logging
 import os
+import pandas as pd
+import numpy as np
 
 # CONFIGURATION
 config = configparser.ConfigParser()

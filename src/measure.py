@@ -24,7 +24,11 @@ def measure(stop_event, filename, timestamp):
     csv_file = f"results/{timestamp}/{filename}.csv"
 
     num_cpu = psutil.cpu_count(logical=True)
-    rapl_sockets = len([name for name in os.listdir('/sys/class/powercap') if name.startswith('intel-rapl') and ':' in name and name.count(':') == 1])
+    rapl_path = '/sys/class/powercap'
+    rapl_sockets = sum(
+        1 for name in os.listdir(rapl_path)
+        if name.startswith('intel-rapl') and name.count(':') == 1
+    )
     
     headers = [
         "timestamp",

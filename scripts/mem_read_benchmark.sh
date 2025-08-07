@@ -4,7 +4,7 @@ start_testrun=$(date)
 
 sleep 2
 
-stress-ng --memrate 1 --memrate-rd-mbs 20000 --memrate-wr-mbs 0 --timeout 60s
+stress-ng --vm 2 --vm-bytes 75% --vm-method read64 --timeout 30s
 
 sleep 2
 

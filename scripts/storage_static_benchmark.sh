@@ -4,7 +4,7 @@ start_testrun=$(date)
 
 sleep 2
 
-/home/twuttge//.local/bin/fio --name=read_test --filename=tmp/testfile_read --bs=4k --rw=randread --direct=1 --iodepth=256 --numjobs=1 --runtime=30s --time_based --ioengine=posixaio --readonly
+/home/twuttge/.local/bin/fio --name=static --filename=tmp/testfile --size=2G --bs=1024k --rw=readwrite --direct=1 --iodepth=256 --numjobs=1 --runtime=30s --time_based
 
 sleep 2
 
