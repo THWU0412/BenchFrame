@@ -47,6 +47,9 @@ if __name__ == "__main__":
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     results_dir = f"results/{timestamp}/"
     os.makedirs(results_dir, exist_ok=True)
+
+    # Ensure tmp directory exists
+    os.makedirs("tmp/", exist_ok=True)
     
     test_counter = 0
 
