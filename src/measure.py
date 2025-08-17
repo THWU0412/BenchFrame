@@ -10,16 +10,6 @@ import os
 from src.util import config, logger
 import redfish
 
-# TODO: Fix that shit!
-# Run with:
-# python -c 'from src.measure import write_labels; print(write_labels([], "sequential", "2025-04-30_14-42-03"));'
-def write_labels(label_times, filename, timestamp):
-    df = pd.read_csv(f"results/{timestamp}/{filename}.csv")
-    df["label"] = df["timestamp"].apply(lambda x: "create" if x < label_times[0] else "destroy")
-    df.to_csv(f"results/{timestamp}/{filename}.csv", index=False)
-
-# Run with:
-# sudo -E python3 -c 'from src.measure import measure; measure(None, "test", "test");'
 def measure(stop_event, filename, timestamp):
     csv_file = f"results/{timestamp}/{filename}.csv"
 
@@ -115,8 +105,6 @@ def setup_PDU():
     PDU_R = Netio(config['host']['NETIO_IP_R'], auth_rw=config['host']['NETIO_AUTH'])
     return PDU_L, PDU_R
 
-# Run with:
-# python -c 'from src.measure import setup_PDU, read_PDU; PDU_L, PDU_R = setup_PDU(); print(read_PDU(PDU_L, PDU_R));'
 def read_PDU(PDU_L, PDU_R):
     
     output_L = PDU_L.get_output(int(config['host']['PDU_NODE_ID']))
@@ -145,8 +133,6 @@ def setup_IPMI():
     ipmi.session.establish()
     return ipmi
 
-# Run with:
-# python -c 'from src.measure import read_IPMI, setup_IPMI; ipmi = setup_IPMI(); print(read_IPMI(ipmi));'
 # Allowed IPMI commands:
 # ipmitool -H 192.168.1.209 sensor -U atlstudent -P 56iPmIuSeR -L USER
 # ipmitool -H 192.168.1.209 dcmi power reading -U atlstudent -P 56iPmIuSeR -L ADMINISTRATOR
@@ -158,12 +144,12 @@ def read_IPMI(ipmi):
         return None
 
     return {
-        'current': power_reading.current_power, # In Watts
-        'minimum': power_reading.minimum_power, # In Watts
-        'maximum': power_reading.maximum_power, # In Watts
-        'average': power_reading.average_power, # In Watts
+        'current': power_reading.current_power,                         # In Watts
+        'minimum': power_reading.minimum_power,                         # In Watts
+        'maximum': power_reading.maximum_power,                         # In Watts
+        'average': power_reading.average_power,                         # In Watts
         'timestamp': datetime.fromtimestamp(power_reading.timestamp),
-        'period': round(power_reading.period / 86400000, 2), # Convert ms to days
+        'period': round(power_reading.period / 86400000, 2),            # Convert ms to days
         'state': power_reading.reading_state
     }
     
@@ -189,15 +175,12 @@ def read_Redfish(REDFISH_OBJ):
         return None
 
 
-# Run with:
-# sudo -E python3 -c 'from src.measure import clean_results; clean_results("results/2025-06-11_19-33-53");'
 def clean_results(results_dir):
     os.makedirs(os.path.join(results_dir, "cleaned/"), exist_ok=True)
     for folder_item in os.listdir(results_dir):
         if folder_item.endswith(".csv"):
             try:
                 df = pd.read_csv(os.path.join(results_dir, folder_item))
-                # Example cleaning: drop rows with any NaN values and remove rows with only '-'
                 rep_set = []
                 current = []
                 for _, row in df.iterrows():
@@ -234,8 +217,7 @@ def clean_results(results_dir):
                 cleaned_df = pd.concat(cleaned_with_sep, ignore_index=True)
                 out_path = os.path.join(results_dir, "cleaned/", f"{folder_item[:-4]}_cleaned.csv")
                 cleaned_df.to_csv(out_path, index=False)
-                
-                
+            
             except Exception as e:
                 print(f"Error processing {folder_item}: {e}")
                 

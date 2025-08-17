@@ -4,7 +4,7 @@ start_testrun=$(date)
 
 sleep 2
 
-/home/twuttge/.local/bin/fio --name=write --filename=tmp/testfile --size=2G --bs=4k --rw=write --direct=1 --runtime=30s --time_based --ioengine=posixaio
+fio --name=write --filename=tmp/testfile --size=2G --bs=4k --rw=write --direct=1 --runtime=30s --time_based --ioengine=posixaio
 
 sleep 2
 
