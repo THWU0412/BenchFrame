@@ -53,6 +53,6 @@ The `scripts` directory contains all benchmark experiment scripts. To add a new 
 2. Copy the `template.conf` file, rename it into `host.conf`, and fill in all necessary information
 3. Run the application
     ```bash
-    sudo -E python main.py
+    sudo -E python3 main.py
     ```
 4. The results are stored in `results/`

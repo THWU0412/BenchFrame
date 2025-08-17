@@ -15,7 +15,7 @@ def run_script(run, host=None, username=None, key_path=None):
     # Make the script executable
     script_path = f"{config['host']['EXEC_PATH'].rstrip('/')}/{run[1]}"
     os.chmod(script_path, 0o755)
-    args = [config['host']['REMOTE_USER'], config['host']['REMOTE_HOST'], config['host']['REMOTE_SSH_KEY']]
+    args = [config['remote']['REMOTE_USER'], config['remote']['REMOTE_HOST'], config['remote']['REMOTE_SSH_KEY']]
     process = subprocess.Popen(['bash', script_path] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     print(f"Started script with PID: {process.pid}")
     logger.info(f"Started script with PID: {process.pid}")
