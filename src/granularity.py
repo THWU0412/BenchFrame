@@ -79,13 +79,13 @@ def test_none_granularity(granularity):
     logger.info(f"Executed granularity test for NONE with granularity: {granularity}, duration: {duration}")
     return duration
 
-def store_results(results_dir, granularity, durations_pdu, durations_redfish, durations_rapl):
+def store_results(results_dir, granularity, durations_pdu, durations_redfish, durations_rapl, durations_none):
     csv_file = os.path.join(results_dir, "granularity.csv")
     with open(csv_file, mode='a', newline='') as f:
         writer = csv.writer(f)
         if f.tell() == 0:
             writer.writerow(["GRANULARITY", "NONE", "PDU_DURATION", "Redfish_DURATION", "RAPL_DURATION"])
-        writer.writerow([granularity, np.mean(durations_pdu), np.mean(durations_redfish), np.mean(durations_rapl)])
+        writer.writerow([granularity, np.mean(durations_none), np.mean(durations_pdu), np.mean(durations_redfish), np.mean(durations_rapl)])
 
 def run_granularity_tests(results_dir):
     for granularity in granularity_values:
@@ -99,8 +99,8 @@ def run_granularity_tests(results_dir):
             durations_rapl.append(test_rapl_granularity(granularity))
             durations_none.append(test_none_granularity(granularity))
         store_results(results_dir, granularity, durations_pdu, durations_redfish, durations_rapl, durations_none)
-        print(f"Results for granularity {granularity}:")
-        logger.info(f"Results for granularity {granularity}:")
+        print(f"\nResults for granularity {granularity}:")
+        logger.info(f"\nResults for granularity {granularity}:")
         print(f"PDU durations: {np.mean(durations_pdu)}")
         logger.info(f"PDU durations: {np.mean(durations_pdu)}")
         print(f"Redfish durations: {np.mean(durations_redfish)}")

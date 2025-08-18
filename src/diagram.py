@@ -71,7 +71,7 @@ def plot_cleaned_data(
 
     ln1 = ax.plot(avg_timestamp, avg_redfish, label=label_redfish, color='green', linestyle='--')
     ln2 = ax.plot(avg_timestamp, avg_pdu, label=label_pdu, color='blue', linestyle='--')
-    ln3 = ax.plot(avg_timestamp, avg_rapl, label=label_rapl, color='purple', linestyle='--')
+    ln3 = ax.plot(avg_timestamp, avg_rapl, label=label_rapl, color='orange', linestyle='--')
     
     lns = ln1 + ln2 + ln3
     labels = ["Redfish", "PowerPDU", "RAPL"]
