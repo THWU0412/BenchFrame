@@ -3,7 +3,7 @@ import threading
 import time
 from datetime import datetime
 import os
-from src.diagram import plot_cleaned_data, generate_diagrams_thesis
+from src.diagram import plot_cleaned_data, plot_total_energy, generate_diagrams_thesis
 from src.measure import measure, clean_results
 import subprocess
 from src.util import logger, config
@@ -31,6 +31,7 @@ def generate_diagrams(results_dir):
             output_path = os.path.join(results_dir, "cleaned/", f"{os.path.splitext(file)[0]}.pdf")
             print(f"Generating diagrams for {csv_path}...")
             plot_cleaned_data(csv_path, output_path)
+            plot_total_energy(csv_path, output_path)
 
 def run_benchmark(run, timestamp):
     stop_event = threading.Event()
