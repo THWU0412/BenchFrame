@@ -79,5 +79,5 @@ if __name__ == "__main__":
         
     clean_results(results_dir)
     generate_diagrams(results_dir)
-    # generate_diagrams_thesis(results_dir)
-    run_granularity_tests()
+    generate_diagrams_thesis(results_dir)
+    run_granularity_tests(results_dir)
